@@ -29,6 +29,33 @@ public class DeliveryService : IDeliveryService
         return deliveries.Select(ToDto);
     }
 
+    public async Task<DeliveryDetailDto> GetDetailByIdAsync(int id)
+    {
+        var detail = await _deliveryRepo.GetDetailByIdAsync(id)
+            ?? throw new NotFoundException($"Delivery with id {id} was not found.");
+
+        return new DeliveryDetailDto
+        {
+            Id = detail.Id,
+            Status = detail.Status,
+            Origin = detail.Origin,
+            Destination = detail.Destination,
+            Client = new DeliveryClientDto
+            {
+                Name = detail.CustomerName,
+                Email = detail.CustomerEmail,
+                RegisteredSince = detail.CustomerRegisteredSince
+            },
+            DeliveryPerson = new DeliveryDriverDto
+            {
+                Name = detail.DriverName,
+                Phone = detail.DriverPhone,
+                PhotoUrl = detail.DriverPhotoUrl,
+                Verified = detail.DriverVerified
+            }
+        };
+    }
+
     public async Task<DeliveryDto> UploadEvidenceAsync(int orderId, UploadEvidenceDto dto)
     {
         var order = await _orderRepo.GetByIdAsync(orderId)
