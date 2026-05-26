@@ -1,9 +1,6 @@
 -- ============================================================
 -- V3__create_drivers.sql
--- Stores delivery drivers available to fulfill orders.
--- Business rules (enforced at the service layer):
---   - `available` is set to FALSE when an order is assigned.
---   - A driver cannot be deleted while they have active orders.
+-- Delivery drivers who fulfill deliveries.
 -- ============================================================
 
 USE order_management;
@@ -15,18 +12,19 @@ SET FOREIGN_KEY_CHECKS = 1;
 CREATE TABLE drivers (
     id         INT          NOT NULL AUTO_INCREMENT,
     name       VARCHAR(150) NOT NULL,
-    phone      VARCHAR(20)  NOT NULL DEFAULT '',
-    available  TINYINT(1)   NOT NULL DEFAULT 1  COMMENT '1 = available to accept new orders',
-    active     TINYINT(1)   NOT NULL DEFAULT 1  COMMENT '1 = active, 0 = soft-deleted',
+    vehicle    VARCHAR(100) NOT NULL,
+    license_plate VARCHAR(20)  NOT NULL,
+    phone      VARCHAR(20)  NOT NULL,
+    photo_url  VARCHAR(500) NULL,
+    is_verified TINYINT(1)  NOT NULL DEFAULT 0  COMMENT '0 = not verified, 1 = verified',
     created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
                                      ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id),
-    KEY idx_drivers_available (available),
-    KEY idx_drivers_active    (active)
+    UNIQUE KEY uq_drivers_license_plate (license_plate)
 )
 ENGINE  = InnoDB
 CHARSET = utf8mb4
 COLLATE = utf8mb4_unicode_ci
-COMMENT = 'Delivery drivers who fulfill orders';
+COMMENT = 'Delivery drivers who fulfill deliveries';

@@ -6,7 +6,10 @@
       "Bash(dotnet list *)",
       "PowerShell(New-Item *)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(Move-Item *)",
+      "PowerShell(Move-Item *)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Usuario\\\\Documents\\\\GitHub\\\\orders-api-backend\\\\ordersBackend\\\\GestionOrdenes\\\\\" -Recurse -Force | Select-Object -Property FullName | ForEach-Object { $_.FullName } | Sort-Object)"
     ]
   }
 }

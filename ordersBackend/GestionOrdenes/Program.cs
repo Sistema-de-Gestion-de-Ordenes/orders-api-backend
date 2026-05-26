@@ -1,8 +1,10 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using OrderManagement.Middleware;
+using OrderManagement.Persistence;
 using OrderManagement.Repositories;
 using OrderManagement.Repositories.Interfaces;
 using OrderManagement.Services;
@@ -11,6 +13,11 @@ using OrderManagement.Services.Interfaces;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
+builder.Services.AddDbContext<OrderManagementDbContext>(options =>
+    options.UseSqlServer(connectionString));
 
 // --- Repositories (Scoped) ---
 builder.Services.AddScoped<ICustomerRepository,     CustomerRepository>();
