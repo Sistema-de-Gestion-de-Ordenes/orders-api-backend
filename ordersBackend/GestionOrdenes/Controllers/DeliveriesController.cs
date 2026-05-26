@@ -7,7 +7,7 @@ using OrderManagement.Services.Interfaces;
 namespace OrderManagement.Controllers;
 
 [ApiController]
-[Route("entregas")]
+[Route("deliveries")]
 [Authorize]
 public class DeliveriesController : ControllerBase
 {

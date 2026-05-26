@@ -15,7 +15,7 @@ public class DeliveryEndpointAuthTests : IClassFixture<WebApplicationFactory<Pro
     [Fact]
     public async Task GetDeliveryById_ReturnsUnauthorized_WhenTokenIsMissing()
     {
-        var response = await _client.GetAsync("/delivery/1");
+        var response = await _client.GetAsync("/deliveries/1");
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 }
