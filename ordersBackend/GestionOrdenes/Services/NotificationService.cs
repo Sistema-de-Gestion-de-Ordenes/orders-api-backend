@@ -33,32 +33,32 @@ public class NotificationService : INotificationService
         await _notificationRepo.MarkAsReadAsync(id);
     }
 
-    public async Task SendNotificationAsync(int userId, int? orderId, string title, string message)
+    public async Task SendNotificationAsync(int customerId, int? deliveryId, string title, string message)
     {
         var notification = new Notification
         {
-            UserId    = userId,
-            OrderId   = orderId,
-            Title     = title,
-            Message   = message,
-            IsRead    = false,
-            CreatedAt = DateTime.UtcNow
+            CustomerId = customerId,
+            DeliveryId = deliveryId,
+            Title      = title,
+            Message    = message,
+            IsRead     = false,
+            CreatedAt  = DateTime.UtcNow
         };
 
         await _notificationRepo.InsertAsync(notification);
 
         try
         {
-            var fcmToken = await _notificationRepo.GetFcmTokenAsync(userId);
+            var fcmToken = await _notificationRepo.GetFcmTokenAsync(customerId);
             if (!string.IsNullOrEmpty(fcmToken))
                 await SendFcmPushAsync(fcmToken, title, message);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "FCM push failed for user {UserId}", userId);
+            _logger.LogWarning(ex, "FCM push failed for customer {CustomerId}", customerId);
         }
 
-        _logger.LogInformation("Notification saved for user {UserId}: {Title}", userId, title);
+        _logger.LogInformation("Notification saved for customer {CustomerId}: {Title}", customerId, title);
     }
 
     public async Task SaveFcmTokenAsync(int userId, string token)
@@ -81,9 +81,9 @@ public class NotificationService : INotificationService
 
     private static NotificationDto ToDto(Notification n) => new()
     {
-        Id        = n.Id,
-        UserId    = n.UserId,
-        OrderId   = n.OrderId,
+        Id         = n.Id,
+        CustomerId = n.CustomerId,
+        DeliveryId = n.DeliveryId,
         Title     = n.Title,
         Message   = n.Message,
         IsRead    = n.IsRead,

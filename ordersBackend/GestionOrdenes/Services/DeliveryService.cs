@@ -11,8 +11,8 @@ public class DeliveryService : IDeliveryService
 {
     private static readonly Dictionary<string, HashSet<string>> ValidTransitions = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["pending"]    = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "in_transit" },
-        ["in_transit"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "delivered", "cancelled" }
+        ["pending"]    = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "on_the_way" },
+        ["on_the_way"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "delivered", "canceled" }
     };
 
     private readonly IDeliveryRepository _deliveryRepo;
@@ -136,7 +136,7 @@ public class DeliveryService : IDeliveryService
         try
         {
             await _notificationService.SendNotificationAsync(
-                detail.CustomerUserId,
+                detail.CustomerId,
                 id,
                 "Delivery status updated",
                 $"Delivery #{id} status has changed to: {normalizedStatus}.");

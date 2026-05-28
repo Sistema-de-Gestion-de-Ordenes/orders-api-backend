@@ -56,7 +56,7 @@ public class DeliveryRepository : IDeliveryRepository
                 d.status                AS Status,
                 d.origin                AS Origin,
                 d.destination           AS Destination,
-                c.user_id               AS CustomerUserId,
+                d.customer_id           AS CustomerId,
                 c.name                  AS CustomerName,
                 c.email                 AS CustomerEmail,
                 c.created_at            AS CustomerRegisteredSince,

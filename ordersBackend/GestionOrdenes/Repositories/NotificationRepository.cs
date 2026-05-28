@@ -20,9 +20,9 @@ public class NotificationRepository : INotificationRepository
     {
         using var conn = CreateConnection();
         const string sql = @"
-            SELECT id, user_id, order_id, title, message, is_read, created_at
+            SELECT id, customer_id, delivery_id, title, message, is_read, created_at
             FROM notifications
-            WHERE user_id = @userId
+            WHERE customer_id = @userId
             ORDER BY created_at DESC";
         return await conn.QueryAsync<Notification>(sql, new { userId });
     }
@@ -30,7 +30,7 @@ public class NotificationRepository : INotificationRepository
     public async Task<Notification?> GetByIdAsync(int id)
     {
         using var conn = CreateConnection();
-        const string sql = "SELECT id, user_id, order_id, title, message, is_read, created_at FROM notifications WHERE id = @id";
+        const string sql = "SELECT id, customer_id, delivery_id, title, message, is_read, created_at FROM notifications WHERE id = @id";
         return await conn.QueryFirstOrDefaultAsync<Notification>(sql, new { id });
     }
 
@@ -38,8 +38,8 @@ public class NotificationRepository : INotificationRepository
     {
         using var conn = CreateConnection();
         const string sql = @"
-            INSERT INTO notifications (user_id, order_id, title, message, is_read, created_at)
-            VALUES (@UserId, @OrderId, @Title, @Message, @IsRead, @CreatedAt);
+            INSERT INTO notifications (customer_id, delivery_id, title, message, is_read, created_at)
+            VALUES (@CustomerId, @DeliveryId, @Title, @Message, @IsRead, @CreatedAt);
             SELECT LAST_INSERT_ID();";
         return await conn.ExecuteScalarAsync<int>(sql, notification);
     }
@@ -54,7 +54,7 @@ public class NotificationRepository : INotificationRepository
     {
         using var conn = CreateConnection();
         return await conn.ExecuteScalarAsync<string?>(
-            "SELECT fcm_token FROM users WHERE id = @userId",
+            "SELECT fcm_token FROM customers WHERE id = @userId",
             new { userId });
     }
 
@@ -62,7 +62,7 @@ public class NotificationRepository : INotificationRepository
     {
         using var conn = CreateConnection();
         await conn.ExecuteAsync(
-            "UPDATE users SET fcm_token = @token WHERE id = @userId",
+            "UPDATE customers SET fcm_token = @token WHERE id = @userId",
             new { userId, token });
     }
 }
