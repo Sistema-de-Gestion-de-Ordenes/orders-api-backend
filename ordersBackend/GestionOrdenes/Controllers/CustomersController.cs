@@ -7,7 +7,7 @@ using OrderManagement.Services.Interfaces;
 namespace OrderManagement.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("clients")]
 [Authorize]
 public class CustomersController : ControllerBase
 {
@@ -33,30 +33,25 @@ public class CustomersController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateCustomerDto dto)
+    [AllowAnonymous]
+    public async Task<IActionResult> Create([FromForm] CreateCustomerDto dto)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ApiResponse<object>.Fail("Invalid request data."));
-
         var result = await _customerService.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = result.Id },
-            ApiResponse<CustomerDto>.SuccessResult(result, "Customer created."));
+            ApiResponse<CustomerDto>.SuccessResult(result, "Client created."));
     }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateCustomerDto dto)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ApiResponse<object>.Fail("Invalid request data."));
-
         var result = await _customerService.UpdateAsync(id, dto);
-        return Ok(ApiResponse<CustomerDto>.SuccessResult(result, "Customer updated."));
+        return Ok(ApiResponse<CustomerDto>.SuccessResult(result, "Client updated."));
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
         await _customerService.DeleteAsync(id);
-        return Ok(ApiResponse<object>.SuccessResult(null, "Customer deleted."));
+        return Ok(ApiResponse<object>.SuccessResult(null, "Client deleted."));
     }
 }

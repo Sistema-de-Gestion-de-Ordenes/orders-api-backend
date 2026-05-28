@@ -10,5 +10,5 @@ public interface ICustomerRepository
     Task<int> InsertAsync(Customer customer);
     Task UpdateAsync(Customer customer);
     Task DeleteAsync(int id);
-    Task<bool> HasActiveOrdersAsync(int customerId);
+    Task<bool> HasActiveDeliveriesAsync(int customerId);
 }

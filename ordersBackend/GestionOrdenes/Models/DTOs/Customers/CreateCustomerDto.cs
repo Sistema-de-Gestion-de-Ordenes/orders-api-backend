@@ -16,6 +16,6 @@ public class CreateCustomerDto
     [Phone]
     public string Phone { get; set; } = string.Empty;
 
-    [Required, MaxLength(300)]
-    public string Address { get; set; } = string.Empty;
+    [Required]
+    public IFormFile Photo { get; set; } = null!;
 }
