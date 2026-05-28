@@ -9,18 +9,30 @@ namespace OrderManagement.Services;
 
 public class DeliveryService : IDeliveryService
 {
+    private static readonly Dictionary<string, HashSet<string>> ValidTransitions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["pending"]    = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "in_transit" },
+        ["in_transit"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "delivered", "cancelled" }
+    };
+
     private readonly IDeliveryRepository _deliveryRepo;
     private readonly IOrderRepository _orderRepo;
     private readonly IConfiguration _config;
+    private readonly INotificationService _notificationService;
+    private readonly ILogger<DeliveryService> _logger;
 
     public DeliveryService(
         IDeliveryRepository deliveryRepo,
         IOrderRepository orderRepo,
-        IConfiguration config)
+        IConfiguration config,
+        INotificationService notificationService,
+        ILogger<DeliveryService> logger)
     {
-        _deliveryRepo = deliveryRepo;
-        _orderRepo    = orderRepo;
-        _config       = config;
+        _deliveryRepo        = deliveryRepo;
+        _orderRepo           = orderRepo;
+        _config              = config;
+        _notificationService = notificationService;
+        _logger              = logger;
     }
 
     public async Task<IEnumerable<DeliveryDto>> GetAllAsync()
@@ -108,6 +120,32 @@ public class DeliveryService : IDeliveryService
     //     };
     //     return await cloudinary.UploadAsync(uploadParams);
     // }
+
+    public async Task UpdateStatusAsync(int id, string newStatus)
+    {
+        var normalizedStatus = newStatus.ToLowerInvariant();
+
+        var detail = await _deliveryRepo.GetDetailByIdAsync(id)
+            ?? throw new NotFoundException($"Delivery with id {id} was not found.");
+
+        if (!ValidTransitions.TryGetValue(detail.Status, out var allowed) || !allowed.Contains(normalizedStatus))
+            throw new DomainException($"Cannot transition from '{detail.Status}' to '{normalizedStatus}'.");
+
+        await _deliveryRepo.UpdateStatusAsync(id, normalizedStatus);
+
+        try
+        {
+            await _notificationService.SendNotificationAsync(
+                detail.CustomerUserId,
+                null,
+                "Delivery status updated",
+                $"Your delivery status has changed to: {normalizedStatus}.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send notification for delivery {DeliveryId}", id);
+        }
+    }
 
     private static DeliveryDto ToDto(Delivery d) => new()
     {

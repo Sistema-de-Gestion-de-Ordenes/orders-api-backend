@@ -1,4 +1,6 @@
 using System.Text;
+using FirebaseAdmin;
+using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -90,6 +92,18 @@ builder.Services.AddSwaggerGen(c =>
         { securityScheme, Array.Empty<string>() }
     });
 });
+
+// --- Firebase ---
+var firebaseCredPath = builder.Configuration["Firebase:CredentialsPath"];
+if (!string.IsNullOrEmpty(firebaseCredPath) && File.Exists(firebaseCredPath) && FirebaseApp.DefaultInstance is null)
+{
+#pragma warning disable CS0618
+    FirebaseApp.Create(new AppOptions
+    {
+        Credential = GoogleCredential.FromFile(firebaseCredPath)
+    });
+#pragma warning restore CS0618
+}
 
 var app = builder.Build();
 

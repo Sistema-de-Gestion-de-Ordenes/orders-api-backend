@@ -42,4 +42,24 @@ public class DeliveriesController : ControllerBase
         var result = await _deliveryService.GetDetailByIdAsync(deliveryId);
         return Ok(ApiResponse<DeliveryDetailDto>.SuccessResult(result));
     }
+
+    [HttpPut("{id}/status")]
+    [Authorize(Roles = "Admin,Driver")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> UpdateStatus(string id, [FromBody] UpdateDeliveryStatusDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ApiResponse<object>.Fail("Invalid request data."));
+
+        if (!int.TryParse(id, out var deliveryId) || deliveryId <= 0)
+            return BadRequest(ApiResponse<object>.Fail("Invalid delivery id format."));
+
+        await _deliveryService.UpdateStatusAsync(deliveryId, dto.Status);
+        return Ok(ApiResponse<object>.SuccessResult(null, "Delivery status updated successfully."));
+    }
 }

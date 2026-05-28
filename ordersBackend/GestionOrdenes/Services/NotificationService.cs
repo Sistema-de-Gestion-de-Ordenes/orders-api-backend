@@ -1,3 +1,4 @@
+using FirebaseAdmin;
 using OrderManagement.Common;
 using OrderManagement.Models.DTOs.Notifications;
 using OrderManagement.Models.Entities;
@@ -46,10 +47,16 @@ public class NotificationService : INotificationService
 
         await _notificationRepo.InsertAsync(notification);
 
-        // TODO: Send push notification via FCM (pending issue)
-        // var fcmToken = await _notificationRepo.GetFcmTokenAsync(userId);
-        // if (!string.IsNullOrEmpty(fcmToken))
-        //     await SendFcmPushAsync(fcmToken, title, message);
+        try
+        {
+            var fcmToken = await _notificationRepo.GetFcmTokenAsync(userId);
+            if (!string.IsNullOrEmpty(fcmToken))
+                await SendFcmPushAsync(fcmToken, title, message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "FCM push failed for user {UserId}", userId);
+        }
 
         _logger.LogInformation("Notification saved for user {UserId}: {Title}", userId, title);
     }
@@ -59,11 +66,18 @@ public class NotificationService : INotificationService
         await _notificationRepo.UpdateFcmTokenAsync(userId, token);
     }
 
-    // TODO: Implement FCM push delivery (pending issue)
-    // private async Task SendFcmPushAsync(string fcmToken, string title, string message)
-    // {
-    //     // Use FirebaseAdmin SDK or HTTP call to FCM v1 API
-    // }
+    private static async Task SendFcmPushAsync(string fcmToken, string title, string body)
+    {
+        if (FirebaseApp.DefaultInstance is null)
+            return;
+
+        var msg = new FirebaseAdmin.Messaging.Message
+        {
+            Token        = fcmToken,
+            Notification = new FirebaseAdmin.Messaging.Notification { Title = title, Body = body }
+        };
+        await FirebaseAdmin.Messaging.FirebaseMessaging.DefaultInstance.SendAsync(msg);
+    }
 
     private static NotificationDto ToDto(Notification n) => new()
     {

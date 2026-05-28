@@ -9,4 +9,5 @@ public interface IDeliveryRepository
     Task<Delivery?> GetByOrderIdAsync(int orderId);
     Task<DeliveryDetailRecord?> GetDetailByIdAsync(int id);
     Task<int> InsertAsync(Delivery delivery);
+    Task UpdateStatusAsync(int id, string newStatus);
 }

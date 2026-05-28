@@ -6,6 +6,7 @@ public class DeliveryDetailRecord
     public string Status { get; set; } = string.Empty;
     public string Origin { get; set; } = string.Empty;
     public string Destination { get; set; } = string.Empty;
+    public int CustomerUserId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
     public string CustomerEmail { get; set; } = string.Empty;
     public DateTime CustomerRegisteredSince { get; set; }
