@@ -7,5 +7,5 @@ public interface IDeliveryService
     Task<IEnumerable<DeliveryDto>> GetAllAsync();
     Task<DeliveryDetailDto> GetDetailByIdAsync(int id);
     Task<DeliveryDto> UploadEvidenceAsync(int orderId, UploadEvidenceDto dto);
-    Task UpdateStatusAsync(int id, string newStatus);
+    Task<DeliveryStatusResponseDto> UpdateStatusAsync(int id, string newStatus);
 }

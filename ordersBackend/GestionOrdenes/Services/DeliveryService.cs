@@ -121,15 +121,15 @@ public class DeliveryService : IDeliveryService
     //     return await cloudinary.UploadAsync(uploadParams);
     // }
 
-    public async Task UpdateStatusAsync(int id, string newStatus)
+    public async Task<DeliveryStatusResponseDto> UpdateStatusAsync(int id, string newStatus)
     {
         var normalizedStatus = newStatus.ToLowerInvariant();
 
         var detail = await _deliveryRepo.GetDetailByIdAsync(id)
-            ?? throw new NotFoundException($"Delivery with id {id} was not found.");
+            ?? throw new NotFoundException($"The delivery with id {id} does not exist.");
 
         if (!ValidTransitions.TryGetValue(detail.Status, out var allowed) || !allowed.Contains(normalizedStatus))
-            throw new DomainException($"Cannot transition from '{detail.Status}' to '{normalizedStatus}'.");
+            throw new DomainException($"Cannot transition from {detail.Status} to {normalizedStatus}.");
 
         await _deliveryRepo.UpdateStatusAsync(id, normalizedStatus);
 
@@ -145,6 +145,8 @@ public class DeliveryService : IDeliveryService
         {
             _logger.LogError(ex, "Failed to send notification for delivery {DeliveryId}", id);
         }
+
+        return new DeliveryStatusResponseDto { Id = id, Status = normalizedStatus };
     }
 
     private static DeliveryDto ToDto(Delivery d) => new()
