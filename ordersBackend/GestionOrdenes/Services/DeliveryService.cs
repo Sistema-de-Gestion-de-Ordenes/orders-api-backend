@@ -137,9 +137,9 @@ public class DeliveryService : IDeliveryService
         {
             await _notificationService.SendNotificationAsync(
                 detail.CustomerUserId,
-                null,
+                id,
                 "Delivery status updated",
-                $"Your delivery status has changed to: {normalizedStatus}.");
+                $"Delivery #{id} status has changed to: {normalizedStatus}.");
         }
         catch (Exception ex)
         {
