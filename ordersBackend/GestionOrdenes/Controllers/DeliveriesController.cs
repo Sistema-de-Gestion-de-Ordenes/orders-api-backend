@@ -8,7 +8,7 @@ namespace OrderManagement.Controllers;
 
 [ApiController]
 [Route("deliveries")]
-[AllowAnonymous]
+[Authorize]
 public class DeliveriesController : ControllerBase
 {
     private readonly IDeliveryService _deliveryService;
