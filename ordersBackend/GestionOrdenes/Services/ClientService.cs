@@ -7,30 +7,47 @@ namespace OrderManagement.Services;
 
 public class ClientService : IClientService
 {
-    private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png" };
+    private static readonly HashSet<string> AllowedMimeTypes = new(StringComparer.OrdinalIgnoreCase)
+        { "image/jpeg", "image/jpg", "image/png" };
 
-    private readonly IClientRepository _clientRepo;
+    private const long MaxPhotoSize = 5 * 1024 * 1024;
 
-    public ClientService(IClientRepository clientRepo)
+    private readonly IClientRepository    _clientRepo;
+    private readonly IWebHostEnvironment  _env;
+
+    public ClientService(IClientRepository clientRepo, IWebHostEnvironment env)
     {
         _clientRepo = clientRepo;
+        _env        = env;
     }
 
     public async Task<ClientResponse> CreateAsync(CreateClientRequest dto)
     {
-        if (dto.Photo is null)
-            throw new DomainException("The profile photo is required.");
-
-        var ext = Path.GetExtension(dto.Photo.FileName);
-        if (!AllowedExtensions.Contains(ext))
+        if (!AllowedMimeTypes.Contains(dto.Photo.ContentType))
             throw new DomainException("Only JPG or PNG images are allowed.");
 
-        var existing = await _clientRepo.GetByEmailAsync(dto.Email);
-        if (existing is not null)
+        if (dto.Photo.Length > MaxPhotoSize)
+            throw new DomainException("Photo must not exceed 5 MB.");
+
+        if (await _clientRepo.GetByEmailAsync(dto.Email) is not null)
             throw new ConflictException("The email is already in use.");
 
-        // TODO: Upload to Cloudinary (pending issue)
-        var photoUrl = $"https://placeholder.storage.com/clients/{Guid.NewGuid()}{ext}";
+        var ext          = Path.GetExtension(dto.Photo.FileName).ToLowerInvariant();
+        var fileName     = $"{Guid.NewGuid()}{ext}";
+        var webRoot      = _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot");
+        var uploadFolder = Path.Combine(webRoot, "uploads", "clients");
+        Directory.CreateDirectory(uploadFolder);
+        var filePath = Path.Combine(uploadFolder, fileName);
+
+        try
+        {
+            using var stream = new FileStream(filePath, FileMode.Create);
+            await dto.Photo.CopyToAsync(stream);
+        }
+        catch
+        {
+            throw new DomainException("Failed to save photo. Please try again.");
+        }
 
         var client = new Client
         {
@@ -38,12 +55,21 @@ public class ClientService : IClientService
             Email        = dto.Email,
             Phone        = dto.Phone,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-            PhotoUrl     = photoUrl,
+            PhotoUrl     = $"/uploads/clients/{fileName}",
             CreatedAt    = DateTime.UtcNow,
             UpdatedAt    = DateTime.UtcNow
         };
 
-        var created = await _clientRepo.CreateAsync(client);
+        Client created;
+        try
+        {
+            created = await _clientRepo.CreateAsync(client);
+        }
+        catch
+        {
+            if (File.Exists(filePath)) File.Delete(filePath);
+            throw;
+        }
 
         return new ClientResponse
         {
