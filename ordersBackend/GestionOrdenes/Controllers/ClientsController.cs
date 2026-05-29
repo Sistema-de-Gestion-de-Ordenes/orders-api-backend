@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OrderManagement.Common;
 using OrderManagement.Models.DTOs.Clients;
@@ -13,6 +14,7 @@ public class ClientsController : ControllerBase
     public ClientsController(IClientService clientService) => _clientService = clientService;
 
     [HttpPost]
+    [AllowAnonymous]
     public async Task<IActionResult> Create([FromForm] CreateClientRequest dto)
     {
         try

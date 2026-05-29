@@ -12,7 +12,7 @@ using OrderManagement.Persistence;
 namespace OrderManagement.Migrations
 {
     [DbContext(typeof(OrderManagementDbContext))]
-    [Migration("20260529193657_InitialSchema")]
+    [Migration("20260529203144_InitialSchema")]
     partial class InitialSchema
     {
         /// <inheritdoc />
@@ -25,7 +25,7 @@ namespace OrderManagement.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("OrderManagement.Persistence.Entities.CustomerEntity", b =>
+            modelBuilder.Entity("OrderManagement.Models.Entities.Client", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -83,13 +83,12 @@ namespace OrderManagement.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Email")
-                        .IsUnique()
-                        .HasDatabaseName("uq_customers_email");
+                        .IsUnique();
 
-                    b.ToTable("customers", (string)null);
+                    b.ToTable("clients", (string)null);
                 });
 
-            modelBuilder.Entity("OrderManagement.Persistence.Entities.DeliveryEntity", b =>
+            modelBuilder.Entity("OrderManagement.Models.Entities.Delivery", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -98,15 +97,15 @@ namespace OrderManagement.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("ClientId")
+                        .HasColumnType("int")
+                        .HasColumnName("client_id");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("GETDATE()");
-
-                    b.Property<int>("CustomerId")
-                        .HasColumnType("int")
-                        .HasColumnName("customer_id");
 
                     b.Property<string>("Destination")
                         .IsRequired()
@@ -140,19 +139,14 @@ namespace OrderManagement.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CustomerId")
-                        .HasDatabaseName("idx_deliveries_customer_id");
+                    b.HasIndex("ClientId");
 
-                    b.HasIndex("DriverId")
-                        .HasDatabaseName("idx_deliveries_driver_id");
-
-                    b.HasIndex("Status")
-                        .HasDatabaseName("idx_deliveries_status");
+                    b.HasIndex("DriverId");
 
                     b.ToTable("deliveries", (string)null);
                 });
 
-            modelBuilder.Entity("OrderManagement.Persistence.Entities.DriverEntity", b =>
+            modelBuilder.Entity("OrderManagement.Models.Entities.Driver", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -173,12 +167,6 @@ namespace OrderManagement.Migrations
                         .HasDefaultValue(false)
                         .HasColumnName("is_verified");
 
-                    b.Property<string>("LicensePlate")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasColumnName("license_plate");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
@@ -196,6 +184,12 @@ namespace OrderManagement.Migrations
                         .HasColumnType("nvarchar(500)")
                         .HasColumnName("photo_url");
 
+                    b.Property<string>("Plates")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("plates");
+
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
@@ -210,14 +204,13 @@ namespace OrderManagement.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("LicensePlate")
-                        .IsUnique()
-                        .HasDatabaseName("uq_drivers_license_plate");
+                    b.HasIndex("Plates")
+                        .IsUnique();
 
                     b.ToTable("drivers", (string)null);
                 });
 
-            modelBuilder.Entity("OrderManagement.Persistence.Entities.NotificationEntity", b =>
+            modelBuilder.Entity("OrderManagement.Models.Entities.Notification", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -226,15 +219,15 @@ namespace OrderManagement.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("ClientId")
+                        .HasColumnType("int")
+                        .HasColumnName("client_id");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("GETDATE()");
-
-                    b.Property<int>("CustomerId")
-                        .HasColumnType("int")
-                        .HasColumnName("customer_id");
 
                     b.Property<int?>("DeliveryId")
                         .HasColumnType("int")
@@ -248,7 +241,7 @@ namespace OrderManagement.Migrations
 
                     b.Property<string>("Message")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("message");
 
                     b.Property<string>("Title")
@@ -259,18 +252,14 @@ namespace OrderManagement.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CustomerId")
-                        .HasDatabaseName("idx_notifications_customer_id");
+                    b.HasIndex("ClientId");
 
                     b.HasIndex("DeliveryId");
-
-                    b.HasIndex("IsRead")
-                        .HasDatabaseName("idx_notifications_is_read");
 
                     b.ToTable("notifications", (string)null);
                 });
 
-            modelBuilder.Entity("OrderManagement.Persistence.Entities.UserEntity", b =>
+            modelBuilder.Entity("OrderManagement.Models.Entities.User", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -303,6 +292,14 @@ namespace OrderManagement.Migrations
                         .HasColumnType("nvarchar(255)")
                         .HasColumnName("password_hash");
 
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("admin")
+                        .HasColumnName("role");
+
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
@@ -312,66 +309,61 @@ namespace OrderManagement.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Email")
-                        .IsUnique()
-                        .HasDatabaseName("uq_users_email");
+                        .IsUnique();
 
                     b.ToTable("users", (string)null);
                 });
 
-            modelBuilder.Entity("OrderManagement.Persistence.Entities.DeliveryEntity", b =>
+            modelBuilder.Entity("OrderManagement.Models.Entities.Delivery", b =>
                 {
-                    b.HasOne("OrderManagement.Persistence.Entities.CustomerEntity", "Customer")
+                    b.HasOne("OrderManagement.Models.Entities.Client", "Client")
                         .WithMany("Deliveries")
-                        .HasForeignKey("CustomerId")
+                        .HasForeignKey("ClientId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fk_deliveries_customer");
+                        .IsRequired();
 
-                    b.HasOne("OrderManagement.Persistence.Entities.DriverEntity", "Driver")
+                    b.HasOne("OrderManagement.Models.Entities.Driver", "Driver")
                         .WithMany("Deliveries")
                         .HasForeignKey("DriverId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fk_deliveries_driver");
+                        .IsRequired();
 
-                    b.Navigation("Customer");
+                    b.Navigation("Client");
 
                     b.Navigation("Driver");
                 });
 
-            modelBuilder.Entity("OrderManagement.Persistence.Entities.NotificationEntity", b =>
+            modelBuilder.Entity("OrderManagement.Models.Entities.Notification", b =>
                 {
-                    b.HasOne("OrderManagement.Persistence.Entities.CustomerEntity", "Customer")
+                    b.HasOne("OrderManagement.Models.Entities.Client", "Client")
                         .WithMany("Notifications")
-                        .HasForeignKey("CustomerId")
+                        .HasForeignKey("ClientId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_notifications_customer");
+                        .IsRequired();
 
-                    b.HasOne("OrderManagement.Persistence.Entities.DeliveryEntity", "Delivery")
+                    b.HasOne("OrderManagement.Models.Entities.Delivery", "Delivery")
                         .WithMany("Notifications")
                         .HasForeignKey("DeliveryId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("fk_notifications_delivery");
+                        .OnDelete(DeleteBehavior.SetNull);
 
-                    b.Navigation("Customer");
+                    b.Navigation("Client");
 
                     b.Navigation("Delivery");
                 });
 
-            modelBuilder.Entity("OrderManagement.Persistence.Entities.CustomerEntity", b =>
+            modelBuilder.Entity("OrderManagement.Models.Entities.Client", b =>
                 {
                     b.Navigation("Deliveries");
 
                     b.Navigation("Notifications");
                 });
 
-            modelBuilder.Entity("OrderManagement.Persistence.Entities.DeliveryEntity", b =>
+            modelBuilder.Entity("OrderManagement.Models.Entities.Delivery", b =>
                 {
                     b.Navigation("Notifications");
                 });
 
-            modelBuilder.Entity("OrderManagement.Persistence.Entities.DriverEntity", b =>
+            modelBuilder.Entity("OrderManagement.Models.Entities.Driver", b =>
                 {
                     b.Navigation("Deliveries");
                 });
