@@ -1,105 +1,58 @@
-using Dapper;
-using MySqlConnector;
 using OrderManagement.Common;
 using OrderManagement.Models.DTOs.Drivers;
 using OrderManagement.Models.Entities;
-using OrderManagement.Models.Enums;
-using OrderManagement.Repositories.Interfaces;
-using OrderManagement.Services.Interfaces;
+using OrderManagement.Repositories;
 
 namespace OrderManagement.Services;
 
 public class DriverService : IDriverService
 {
-    private readonly IDriverRepository _driverRepo;
-    private readonly IConfiguration _config;
+    private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png" };
 
-    public DriverService(IDriverRepository driverRepo, IConfiguration config)
+    private readonly IDriverRepository _driverRepo;
+
+    public DriverService(IDriverRepository driverRepo)
     {
         _driverRepo = driverRepo;
-        _config     = config;
     }
 
-    public async Task<IEnumerable<DriverDto>> GetAllAsync(string? search)
+    public async Task<DriverResponse> CreateAsync(CreateDriverRequest dto)
     {
-        var drivers = await _driverRepo.GetAllAsync(search);
-        return drivers.Select(ToDto);
-    }
+        if (dto.Photo is null)
+            throw new DomainException("The profile photo is required.");
 
-    public async Task<DriverDto> GetByIdAsync(int id)
-    {
-        var driver = await _driverRepo.GetByIdAsync(id)
-            ?? throw new NotFoundException($"Driver with id {id} not found.");
-        return ToDto(driver);
-    }
+        var ext = Path.GetExtension(dto.Photo.FileName);
+        if (!AllowedExtensions.Contains(ext))
+            throw new DomainException("Only JPG or PNG images are allowed.");
 
-    public async Task<DriverDto> CreateAsync(CreateDriverDto dto)
-    {
-        if (await _driverRepo.GetByEmailAsync(dto.Email) is not null)
-            throw new DomainException("A driver with that email already exists.");
+        var existing = await _driverRepo.GetByPlatesAsync(dto.Plates);
+        if (existing is not null)
+            throw new ConflictException("The license plates are already registered.");
 
-        using var conn = new MySqlConnection(_config.GetConnectionString("DefaultConnection"));
-
-        var userId = await conn.ExecuteScalarAsync<int>(@"
-            INSERT INTO users (name, email, password_hash, role, created_at)
-            VALUES (@Name, @Email, @PasswordHash, @Role, @CreatedAt);
-            SELECT LAST_INSERT_ID();",
-            new
-            {
-                dto.Name,
-                dto.Email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                Role         = UserRole.Driver.ToString(),
-                CreatedAt    = DateTime.UtcNow
-            });
+        // TODO: Upload to Cloudinary (pending issue)
+        var photoUrl = $"https://placeholder.storage.com/drivers/{Guid.NewGuid()}{ext}";
 
         var driver = new Driver
         {
-            UserId    = userId,
             Name      = dto.Name,
-            Email     = dto.Email,
-            Phone     = dto.Phone,
             Vehicle   = dto.Vehicle,
-            Available = true,
-            CreatedAt = DateTime.UtcNow
+            Plates    = dto.Plates,
+            Phone     = dto.Phone,
+            PhotoUrl  = photoUrl,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
 
-        driver.Id = await _driverRepo.InsertAsync(driver);
-        return ToDto(driver);
+        var created = await _driverRepo.CreateAsync(driver);
+
+        return new DriverResponse
+        {
+            Id       = created.Id,
+            Name     = created.Name,
+            Vehicle  = created.Vehicle,
+            Plates   = created.Plates,
+            Phone    = created.Phone,
+            PhotoUrl = created.PhotoUrl
+        };
     }
-
-    public async Task<DriverDto> UpdateAsync(int id, UpdateDriverDto dto)
-    {
-        var driver = await _driverRepo.GetByIdAsync(id)
-            ?? throw new NotFoundException($"Driver with id {id} not found.");
-
-        driver.Name    = dto.Name;
-        driver.Phone   = dto.Phone;
-        driver.Vehicle = dto.Vehicle;
-
-        await _driverRepo.UpdateAsync(driver);
-        return ToDto(driver);
-    }
-
-    public async Task DeleteAsync(int id)
-    {
-        _ = await _driverRepo.GetByIdAsync(id)
-            ?? throw new NotFoundException($"Driver with id {id} not found.");
-
-        if (await _driverRepo.HasOrdersInProgressAsync(id))
-            throw new DomainException("Cannot delete a driver who has orders in progress.");
-
-        await _driverRepo.DeleteAsync(id);
-    }
-
-    private static DriverDto ToDto(Driver d) => new()
-    {
-        Id        = d.Id,
-        Name      = d.Name,
-        Email     = d.Email,
-        Phone     = d.Phone,
-        Vehicle   = d.Vehicle,
-        Available = d.Available,
-        CreatedAt = d.CreatedAt
-    };
 }
