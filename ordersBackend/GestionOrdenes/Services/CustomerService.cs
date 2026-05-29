@@ -53,8 +53,15 @@ public class CustomerService : ICustomerService
         var fileName = $"{Guid.NewGuid()}{ext}";
         var filePath = Path.Combine(uploadsFolder, fileName);
 
-        using (var stream = new FileStream(filePath, FileMode.Create))
+        try
+        {
+            using var stream = new FileStream(filePath, FileMode.Create);
             await dto.Photo.CopyToAsync(stream);
+        }
+        catch
+        {
+            throw new DomainException("Failed to save photo. Please try again.");
+        }
 
         var customer = new Customer
         {
@@ -66,7 +73,16 @@ public class CustomerService : ICustomerService
             CreatedAt    = DateTime.UtcNow
         };
 
-        customer.Id = await _customerRepo.InsertAsync(customer);
+        try
+        {
+            customer.Id = await _customerRepo.InsertAsync(customer);
+        }
+        catch
+        {
+            if (File.Exists(filePath)) File.Delete(filePath);
+            throw;
+        }
+
         return ToDto(customer);
     }
 
