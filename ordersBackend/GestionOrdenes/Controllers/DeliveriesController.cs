@@ -1,45 +1,88 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OrderManagement.Common;
 using OrderManagement.Models.DTOs.Deliveries;
-using OrderManagement.Services.Interfaces;
+using OrderManagement.Services;
 
 namespace OrderManagement.Controllers;
 
 [ApiController]
 [Route("deliveries")]
-[Authorize]
 public class DeliveriesController : ControllerBase
 {
     private readonly IDeliveryService _deliveryService;
-
-    public DeliveriesController(IDeliveryService deliveryService)
-    {
-        _deliveryService = deliveryService;
-    }
+    public DeliveriesController(IDeliveryService deliveryService) => _deliveryService = deliveryService;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var result = await _deliveryService.GetAllAsync();
-        return Ok(ApiResponse<IEnumerable<DeliveryDto>>.SuccessResult(result));
+        try
+        {
+            var result = await _deliveryService.GetAllAsync();
+            return Ok(result);
+        }
+        catch (Exception) { return StatusCode(500, new { error = "Internal server error" }); }
     }
 
-    /// <summary>
-    /// Returns the complete detail of a delivery by its identifier.
-    /// </summary>
-    [HttpGet("{id}")]
-    [ProducesResponseType(typeof(ApiResponse<DeliveryDetailDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetById(string id)
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> GetById(int id)
     {
-        if (!int.TryParse(id, out var deliveryId) || deliveryId <= 0)
-            return BadRequest(ApiResponse<object>.Fail("Invalid delivery id format."));
+        try
+        {
+            var result = await _deliveryService.GetByIdAsync(id);
+            return Ok(result);
+        }
+        catch (NotFoundException ex) { return NotFound(new { error = ex.Message }); }
+        catch (Exception)            { return StatusCode(500, new { error = "Internal server error" }); }
+    }
 
-        var result = await _deliveryService.GetDetailByIdAsync(deliveryId);
-        return Ok(ApiResponse<DeliveryDetailDto>.SuccessResult(result));
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateDeliveryRequest dto)
+    {
+        try
+        {
+            var result = await _deliveryService.CreateAsync(dto);
+            return StatusCode(201, result);
+        }
+        catch (NotFoundException ex) { return NotFound(new { error = ex.Message }); }
+        catch (DomainException ex)   { return BadRequest(new { error = ex.Message }); }
+        catch (Exception)            { return StatusCode(500, new { error = "Internal server error" }); }
+    }
+
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateDeliveryRequest dto)
+    {
+        try
+        {
+            var result = await _deliveryService.UpdateAsync(id, dto);
+            return Ok(result);
+        }
+        catch (NotFoundException ex) { return NotFound(new { error = ex.Message }); }
+        catch (DomainException ex)   { return BadRequest(new { error = ex.Message }); }
+        catch (Exception)            { return StatusCode(500, new { error = "Internal server error" }); }
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        try
+        {
+            await _deliveryService.DeleteAsync(id);
+            return NoContent();
+        }
+        catch (NotFoundException ex) { return NotFound(new { error = ex.Message }); }
+        catch (Exception)            { return StatusCode(500, new { error = "Internal server error" }); }
+    }
+
+    [HttpPatch("{id:int}/status")]
+    public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateStatusRequest dto)
+    {
+        try
+        {
+            var result = await _deliveryService.UpdateStatusAsync(id, dto);
+            return Ok(result);
+        }
+        catch (NotFoundException ex) { return NotFound(new { error = ex.Message }); }
+        catch (DomainException ex)   { return BadRequest(new { error = ex.Message }); }
+        catch (Exception)            { return StatusCode(500, new { error = "Internal server error" }); }
     }
 }

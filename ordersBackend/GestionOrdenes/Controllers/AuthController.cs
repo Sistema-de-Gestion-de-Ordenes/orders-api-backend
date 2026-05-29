@@ -1,40 +1,27 @@
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OrderManagement.Common;
 using OrderManagement.Models.DTOs.Auth;
-using OrderManagement.Services.Interfaces;
+using OrderManagement.Services;
 
 namespace OrderManagement.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("auth")]
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
-
-    public AuthController(IAuthService authService)
-    {
-        _authService = authService;
-    }
+    public AuthController(IAuthService authService) => _authService = authService;
 
     [HttpPost("login")]
-    [AllowAnonymous]
-    public async Task<IActionResult> Login([FromBody] LoginRequestDto dto)
+    public async Task<IActionResult> Login([FromBody] LoginRequest dto)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ApiResponse<object>.Fail("Invalid request data."));
-
-        var result = await _authService.LoginAsync(dto);
-        return Ok(ApiResponse<LoginResponseDto>.SuccessResult(result, "Login successful."));
-    }
-
-    [HttpPost("logout")]
-    [Authorize]
-    public async Task<IActionResult> Logout()
-    {
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        await _authService.LogoutAsync(userId);
-        return Ok(ApiResponse<object>.SuccessResult(null, "Session closed."));
+        try
+        {
+            var result = await _authService.LoginAsync(dto);
+            return Ok(result);
+        }
+        catch (DomainException ex) when (ex.StatusCode == 401) { return Unauthorized(new { error = ex.Message }); }
+        catch (DomainException ex) { return BadRequest(new { error = ex.Message }); }
+        catch (Exception) { return StatusCode(500, new { error = "Internal server error" }); }
     }
 }

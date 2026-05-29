@@ -1,121 +1,162 @@
 using OrderManagement.Common;
 using OrderManagement.Models.DTOs.Deliveries;
 using OrderManagement.Models.Entities;
-using OrderManagement.Models.Enums;
-using OrderManagement.Repositories.Interfaces;
-using OrderManagement.Services.Interfaces;
+using OrderManagement.Repositories;
 
 namespace OrderManagement.Services;
 
 public class DeliveryService : IDeliveryService
 {
+    private static readonly Dictionary<string, HashSet<string>> ValidTransitions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["pending"]    = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "in_transit" },
+        ["in_transit"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "delivered", "cancelled" }
+    };
+
     private readonly IDeliveryRepository _deliveryRepo;
-    private readonly IOrderRepository _orderRepo;
-    private readonly IConfiguration _config;
+    private readonly IClientRepository _clientRepo;
+    private readonly IDriverRepository _driverRepo;
+    private readonly INotificationService _notificationService;
+    private readonly ILogger<DeliveryService> _logger;
 
     public DeliveryService(
         IDeliveryRepository deliveryRepo,
-        IOrderRepository orderRepo,
-        IConfiguration config)
+        IClientRepository clientRepo,
+        IDriverRepository driverRepo,
+        INotificationService notificationService,
+        ILogger<DeliveryService> logger)
     {
-        _deliveryRepo = deliveryRepo;
-        _orderRepo    = orderRepo;
-        _config       = config;
+        _deliveryRepo        = deliveryRepo;
+        _clientRepo          = clientRepo;
+        _driverRepo          = driverRepo;
+        _notificationService = notificationService;
+        _logger              = logger;
     }
 
-    public async Task<IEnumerable<DeliveryDto>> GetAllAsync()
+    public async Task<IEnumerable<DeliverySummaryResponse>> GetAllAsync()
     {
         var deliveries = await _deliveryRepo.GetAllAsync();
-        return deliveries.Select(ToDto);
+        return deliveries.Select(d => new DeliverySummaryResponse
+        {
+            Id          = d.Id,
+            Client      = d.Client?.Name ?? string.Empty,
+            Driver      = d.Driver?.Name ?? string.Empty,
+            Origin      = d.Origin,
+            Destination = d.Destination,
+            Status      = d.Status
+        });
     }
 
-    public async Task<DeliveryDetailDto> GetDetailByIdAsync(int id)
+    public async Task<DeliveryDetailResponse> GetByIdAsync(int id)
     {
-        var detail = await _deliveryRepo.GetDetailByIdAsync(id)
-            ?? throw new NotFoundException($"Delivery with id {id} was not found.");
+        var d = await _deliveryRepo.GetByIdAsync(id)
+            ?? throw new NotFoundException($"The delivery with id {id} does not exist.");
 
-        return new DeliveryDetailDto
+        return new DeliveryDetailResponse
         {
-            Id = detail.Id,
-            Status = detail.Status,
-            Origin = detail.Origin,
-            Destination = detail.Destination,
-            Client = new DeliveryClientDto
+            Id     = d.Id,
+            Status = d.Status,
+            Origin = d.Origin,
+            Destination = d.Destination,
+            Client = new ClientDetailDto
             {
-                Name = detail.CustomerName,
-                Email = detail.CustomerEmail,
-                RegisteredSince = detail.CustomerRegisteredSince
+                Name            = d.Client?.Name ?? string.Empty,
+                Email           = d.Client?.Email ?? string.Empty,
+                RegisteredSince = d.Client?.CreatedAt.ToString("dd/MM/yyyy") ?? string.Empty
             },
-            DeliveryPerson = new DeliveryDriverDto
+            Driver = new DriverDetailDto
             {
-                Name = detail.DriverName,
-                Phone = detail.DriverPhone,
-                PhotoUrl = detail.DriverPhotoUrl,
-                Verified = detail.DriverVerified
+                Name     = d.Driver?.Name ?? string.Empty,
+                Phone    = d.Driver?.Phone ?? string.Empty,
+                PhotoUrl = d.Driver?.PhotoUrl,
+                Verified = d.Driver?.IsVerified ?? false
             }
         };
     }
 
-    public async Task<DeliveryDto> UploadEvidenceAsync(int orderId, UploadEvidenceDto dto)
+    public async Task<DeliveryResponse> CreateAsync(CreateDeliveryRequest dto)
     {
-        var order = await _orderRepo.GetByIdAsync(orderId)
-            ?? throw new NotFoundException($"Order with id {orderId} not found.");
+        _ = await _clientRepo.GetByIdAsync(dto.ClientId)
+            ?? throw new NotFoundException($"The client with id {dto.ClientId} does not exist.");
 
-        if (order.Status == OrderStatus.Delivered)
-            throw new DomainException("This order has already been marked as delivered.");
-
-        if (order.Status == OrderStatus.Cancelled)
-            throw new DomainException("Cannot register a delivery for a cancelled order.");
-
-        // TODO: Upload image to Cloudinary (pending issue)
-        // var cloudinary = BuildCloudinaryClient();
-        // var uploadResult = await UploadToCloudinary(cloudinary, dto.Image);
-        // var evidenceUrl = uploadResult.SecureUrl.ToString();
-
-        var evidenceUrl = $"https://placeholder.cloudinary.com/{Guid.NewGuid()}.jpg";
+        _ = await _driverRepo.GetByIdAsync(dto.DriverId)
+            ?? throw new NotFoundException($"The driver with id {dto.DriverId} does not exist.");
 
         var delivery = new Delivery
         {
-            OrderId     = orderId,
-            EvidenceUrl = evidenceUrl,
-            Notes       = dto.Notes,
-            DeliveredAt = DateTime.UtcNow
+            ClientId    = dto.ClientId,
+            DriverId    = dto.DriverId,
+            Origin      = dto.Origin,
+            Destination = dto.Destination,
+            Status      = "pending",
+            CreatedAt   = DateTime.UtcNow,
+            UpdatedAt   = DateTime.UtcNow
         };
 
-        delivery.Id = await _deliveryRepo.InsertAsync(delivery);
-        await _orderRepo.ChangeStatusAsync(orderId, OrderStatus.Delivered);
-
-        return ToDto(delivery);
+        var created = await _deliveryRepo.CreateAsync(delivery);
+        return ToResponse(created);
     }
 
-    // TODO: Implement Cloudinary integration (pending issue)
-    // private Cloudinary BuildCloudinaryClient()
-    // {
-    //     var account = new Account(
-    //         _config["Cloudinary:CloudName"],
-    //         _config["Cloudinary:ApiKey"],
-    //         _config["Cloudinary:ApiSecret"]);
-    //     return new Cloudinary(account);
-    // }
+    public async Task<DeliveryResponse> UpdateAsync(int id, UpdateDeliveryRequest dto)
+    {
+        var delivery = await _deliveryRepo.GetByIdAsync(id)
+            ?? throw new NotFoundException($"The delivery with id {id} does not exist.");
 
-    // private static async Task<ImageUploadResult> UploadToCloudinary(Cloudinary cloudinary, IFormFile file)
-    // {
-    //     using var stream = file.OpenReadStream();
-    //     var uploadParams = new ImageUploadParams
-    //     {
-    //         File   = new FileDescription(file.FileName, stream),
-    //         Folder = "deliveries"
-    //     };
-    //     return await cloudinary.UploadAsync(uploadParams);
-    // }
+        _ = await _driverRepo.GetByIdAsync(dto.DriverId)
+            ?? throw new NotFoundException($"The driver with id {dto.DriverId} does not exist.");
 
-    private static DeliveryDto ToDto(Delivery d) => new()
+        delivery.Origin      = dto.Origin;
+        delivery.Destination = dto.Destination;
+        delivery.DriverId    = dto.DriverId;
+
+        var updated = await _deliveryRepo.UpdateAsync(delivery);
+        return ToResponse(updated);
+    }
+
+    public async Task DeleteAsync(int id)
+    {
+        var delivery = await _deliveryRepo.GetByIdAsync(id)
+            ?? throw new NotFoundException($"The delivery with id {id} does not exist.");
+
+        await _deliveryRepo.DeleteAsync(delivery);
+    }
+
+    public async Task<DeliveryStatusResponse> UpdateStatusAsync(int id, UpdateStatusRequest dto)
+    {
+        var normalizedStatus = dto.Status.ToLowerInvariant();
+
+        var delivery = await _deliveryRepo.GetByIdAsync(id)
+            ?? throw new NotFoundException($"The delivery with id {id} does not exist.");
+
+        if (!ValidTransitions.TryGetValue(delivery.Status, out var allowed) || !allowed.Contains(normalizedStatus))
+            throw new DomainException($"Cannot transition from {delivery.Status} to {normalizedStatus}.");
+
+        delivery.Status = normalizedStatus;
+        await _deliveryRepo.UpdateAsync(delivery);
+
+        try
+        {
+            await _notificationService.SendAsync(
+                delivery.ClientId,
+                id,
+                "Delivery status updated",
+                $"Delivery #{id} status has changed to: {normalizedStatus}.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send FCM notification for delivery {DeliveryId}", id);
+        }
+
+        return new DeliveryStatusResponse { Id = id, Status = normalizedStatus };
+    }
+
+    private static DeliveryResponse ToResponse(Delivery d) => new()
     {
         Id          = d.Id,
-        OrderId     = d.OrderId,
-        OrderNumber = string.Empty,
-        EvidenceUrl = d.EvidenceUrl,
-        Notes       = d.Notes,
-        DeliveredAt = d.DeliveredAt
+        ClientId    = d.ClientId,
+        DriverId    = d.DriverId,
+        Origin      = d.Origin,
+        Destination = d.Destination,
+        Status      = d.Status
     };
 }

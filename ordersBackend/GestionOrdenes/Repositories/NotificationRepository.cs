@@ -1,68 +1,47 @@
-using Dapper;
-using MySqlConnector;
+using Microsoft.EntityFrameworkCore;
 using OrderManagement.Models.Entities;
-using OrderManagement.Repositories.Interfaces;
+using OrderManagement.Persistence;
 
 namespace OrderManagement.Repositories;
 
 public class NotificationRepository : INotificationRepository
 {
-    private readonly string _connectionString;
+    private readonly OrderManagementDbContext _db;
+    public NotificationRepository(OrderManagementDbContext db) => _db = db;
 
-    public NotificationRepository(IConfiguration configuration)
+    public async Task<IEnumerable<Notification>> GetByClientIdAsync(int clientId, bool? read)
     {
-        _connectionString = configuration.GetConnectionString("DefaultConnection")!;
-    }
-
-    private MySqlConnection CreateConnection() => new(_connectionString);
-
-    public async Task<IEnumerable<Notification>> GetByUserIdAsync(int userId)
-    {
-        using var conn = CreateConnection();
-        const string sql = @"
-            SELECT id, user_id, order_id, title, message, is_read, created_at
-            FROM notifications
-            WHERE user_id = @userId
-            ORDER BY created_at DESC";
-        return await conn.QueryAsync<Notification>(sql, new { userId });
+        var query = _db.Notifications.Where(n => n.ClientId == clientId);
+        if (read.HasValue)
+            query = query.Where(n => n.IsRead == read.Value);
+        return await query.OrderByDescending(n => n.CreatedAt).ToListAsync();
     }
 
     public async Task<Notification?> GetByIdAsync(int id)
+        => await _db.Notifications.FirstOrDefaultAsync(n => n.Id == id);
+
+    public async Task<Notification> CreateAsync(Notification notification)
     {
-        using var conn = CreateConnection();
-        const string sql = "SELECT id, user_id, order_id, title, message, is_read, created_at FROM notifications WHERE id = @id";
-        return await conn.QueryFirstOrDefaultAsync<Notification>(sql, new { id });
+        _db.Notifications.Add(notification);
+        await _db.SaveChangesAsync();
+        return notification;
     }
 
-    public async Task<int> InsertAsync(Notification notification)
-    {
-        using var conn = CreateConnection();
-        const string sql = @"
-            INSERT INTO notifications (user_id, order_id, title, message, is_read, created_at)
-            VALUES (@UserId, @OrderId, @Title, @Message, @IsRead, @CreatedAt);
-            SELECT LAST_INSERT_ID();";
-        return await conn.ExecuteScalarAsync<int>(sql, notification);
-    }
+    public async Task SaveAsync() => await _db.SaveChangesAsync();
 
-    public async Task MarkAsReadAsync(int id)
-    {
-        using var conn = CreateConnection();
-        await conn.ExecuteAsync("UPDATE notifications SET is_read = TRUE WHERE id = @id", new { id });
-    }
+    public async Task<string?> GetFcmTokenAsync(int clientId)
+        => await _db.Clients
+            .Where(c => c.Id == clientId)
+            .Select(c => c.FcmToken)
+            .FirstOrDefaultAsync();
 
-    public async Task<string?> GetFcmTokenAsync(int userId)
+    public async Task UpdateFcmTokenAsync(int clientId, string token)
     {
-        using var conn = CreateConnection();
-        return await conn.ExecuteScalarAsync<string?>(
-            "SELECT fcm_token FROM users WHERE id = @userId",
-            new { userId });
-    }
-
-    public async Task UpdateFcmTokenAsync(int userId, string token)
-    {
-        using var conn = CreateConnection();
-        await conn.ExecuteAsync(
-            "UPDATE users SET fcm_token = @token WHERE id = @userId",
-            new { userId, token });
+        var client = await _db.Clients.FindAsync(clientId);
+        if (client is not null)
+        {
+            client.FcmToken = token;
+            await _db.SaveChangesAsync();
+        }
     }
 }

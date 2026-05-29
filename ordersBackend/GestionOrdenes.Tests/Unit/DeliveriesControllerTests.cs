@@ -1,48 +1,59 @@
 using Microsoft.AspNetCore.Mvc;
 using Moq;
-using OrderManagement.Controllers;
 using OrderManagement.Common;
+using OrderManagement.Controllers;
 using OrderManagement.Models.DTOs.Deliveries;
-using OrderManagement.Services.Interfaces;
+using OrderManagement.Services;
 
 namespace GestionOrdenes.Tests.Unit;
 
 public class DeliveriesControllerTests
 {
     [Fact]
-    public async Task GetById_ReturnsBadRequest_WhenIdFormatIsInvalid()
+    public async Task GetById_ReturnsNotFound_WhenDeliveryDoesNotExist()
     {
         var service = new Mock<IDeliveryService>();
+        service.Setup(s => s.GetByIdAsync(99))
+               .ThrowsAsync(new NotFoundException("The delivery with id 99 does not exist."));
         var controller = new DeliveriesController(service.Object);
 
-        var response = await controller.GetById("abc");
+        var response = await controller.GetById(99);
 
-        var badRequest = Assert.IsType<BadRequestObjectResult>(response);
-        var payload = Assert.IsType<ApiResponse<object>>(badRequest.Value);
-        Assert.False(payload.Success);
+        Assert.IsType<NotFoundObjectResult>(response);
     }
 
     [Fact]
-    public async Task GetById_ReturnsOk_WhenIdIsValid()
+    public async Task GetById_ReturnsOk_WhenDeliveryExists()
     {
         var service = new Mock<IDeliveryService>();
-        service.Setup(s => s.GetDetailByIdAsync(2)).ReturnsAsync(new DeliveryDetailDto
+        service.Setup(s => s.GetByIdAsync(2)).ReturnsAsync(new DeliveryDetailResponse
         {
-            Id = 2,
-            Status = "delivered",
-            Origin = "Store",
-            Destination = "Apartment",
-            Client = new DeliveryClientDto { Name = "Alice", Email = "alice@mail.com", RegisteredSince = DateTime.UtcNow },
-            DeliveryPerson = new DeliveryDriverDto { Name = "Bob", Phone = "555-2000", PhotoUrl = "", Verified = true }
+            Id          = 2,
+            Status      = "pending",
+            Origin      = "Store",
+            Destination = "Home",
+            Client      = new ClientDetailDto { Name = "Alice", Email = "alice@mail.com", RegisteredSince = "01/01/2026" },
+            Driver      = new DriverDetailDto { Name = "Bob", Phone = "555-2000", PhotoUrl = null, Verified = true }
         });
-
         var controller = new DeliveriesController(service.Object);
 
-        var response = await controller.GetById("2");
+        var response = await controller.GetById(2);
 
-        var ok = Assert.IsType<OkObjectResult>(response);
-        var payload = Assert.IsType<ApiResponse<DeliveryDetailDto>>(ok.Value);
-        Assert.True(payload.Success);
-        Assert.Equal(2, payload.Data!.Id);
+        var ok      = Assert.IsType<OkObjectResult>(response);
+        var payload = Assert.IsType<DeliveryDetailResponse>(ok.Value);
+        Assert.Equal(2, payload.Id);
+    }
+
+    [Fact]
+    public async Task UpdateStatus_ReturnsBadRequest_WhenTransitionIsInvalid()
+    {
+        var service = new Mock<IDeliveryService>();
+        service.Setup(s => s.UpdateStatusAsync(1, It.IsAny<UpdateStatusRequest>()))
+               .ThrowsAsync(new DomainException("Cannot transition from delivered to pending."));
+        var controller = new DeliveriesController(service.Object);
+
+        var response = await controller.UpdateStatus(1, new UpdateStatusRequest { Status = "pending" });
+
+        Assert.IsType<BadRequestObjectResult>(response);
     }
 }

@@ -3,45 +3,51 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OrderManagement.Common;
 using OrderManagement.Models.DTOs.Notifications;
-using OrderManagement.Services.Interfaces;
+using OrderManagement.Services;
 
 namespace OrderManagement.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("notifications")]
 [Authorize]
 public class NotificationsController : ControllerBase
 {
     private readonly INotificationService _notificationService;
-
-    public NotificationsController(INotificationService notificationService)
-    {
-        _notificationService = notificationService;
-    }
+    public NotificationsController(INotificationService notificationService) => _notificationService = notificationService;
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] bool? read)
     {
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var result = await _notificationService.GetByUserIdAsync(userId);
-        return Ok(ApiResponse<IEnumerable<NotificationDto>>.SuccessResult(result));
+        try
+        {
+            var clientId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await _notificationService.GetByClientIdAsync(clientId, read);
+            return Ok(result);
+        }
+        catch (Exception) { return StatusCode(500, new { error = "Internal server error" }); }
     }
 
-    [HttpPatch("{id}/read")]
+    [HttpPatch("{id:int}/read")]
     public async Task<IActionResult> MarkAsRead(int id)
     {
-        await _notificationService.MarkAsReadAsync(id);
-        return Ok(ApiResponse<object>.SuccessResult(null, "Notification marked as read."));
+        try
+        {
+            await _notificationService.MarkAsReadAsync(id);
+            return Ok(new { message = "Notification marked as read" });
+        }
+        catch (NotFoundException ex) { return NotFound(new { error = ex.Message }); }
+        catch (Exception)            { return StatusCode(500, new { error = "Internal server error" }); }
     }
 
     [HttpPost("fcm-token")]
-    public async Task<IActionResult> SaveFcmToken([FromBody] FcmTokenDto dto)
+    public async Task<IActionResult> SaveFcmToken([FromBody] FcmTokenRequest dto)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ApiResponse<object>.Fail("Invalid request data."));
-
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        await _notificationService.SaveFcmTokenAsync(userId, dto.Token);
-        return Ok(ApiResponse<object>.SuccessResult(null, "FCM token saved."));
+        try
+        {
+            var clientId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            await _notificationService.UpdateFcmTokenAsync(clientId, dto.FcmToken);
+            return Ok(new { message = "FCM token updated successfully" });
+        }
+        catch (Exception) { return StatusCode(500, new { error = "Internal server error" }); }
     }
 }

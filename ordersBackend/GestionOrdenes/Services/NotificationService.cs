@@ -1,8 +1,8 @@
+using FirebaseAdmin;
 using OrderManagement.Common;
 using OrderManagement.Models.DTOs.Notifications;
 using OrderManagement.Models.Entities;
-using OrderManagement.Repositories.Interfaces;
-using OrderManagement.Services.Interfaces;
+using OrderManagement.Repositories;
 
 namespace OrderManagement.Services;
 
@@ -11,68 +11,76 @@ public class NotificationService : INotificationService
     private readonly INotificationRepository _notificationRepo;
     private readonly ILogger<NotificationService> _logger;
 
-    public NotificationService(
-        INotificationRepository notificationRepo,
-        ILogger<NotificationService> logger)
+    public NotificationService(INotificationRepository notificationRepo, ILogger<NotificationService> logger)
     {
         _notificationRepo = notificationRepo;
         _logger           = logger;
     }
 
-    public async Task<IEnumerable<NotificationDto>> GetByUserIdAsync(int userId)
+    public async Task<IEnumerable<NotificationResponse>> GetByClientIdAsync(int clientId, bool? read)
     {
-        var notifications = await _notificationRepo.GetByUserIdAsync(userId);
-        return notifications.Select(ToDto);
+        var notifications = await _notificationRepo.GetByClientIdAsync(clientId, read);
+        return notifications.Select(n => new NotificationResponse
+        {
+            Id         = n.Id,
+            Title      = n.Title,
+            Message    = n.Message,
+            Read       = n.IsRead,
+            DeliveryId = n.DeliveryId,
+            CreatedAt  = n.CreatedAt
+        });
     }
 
     public async Task MarkAsReadAsync(int id)
     {
-        _ = await _notificationRepo.GetByIdAsync(id)
+        var notification = await _notificationRepo.GetByIdAsync(id)
             ?? throw new NotFoundException($"Notification with id {id} not found.");
-        await _notificationRepo.MarkAsReadAsync(id);
+
+        notification.IsRead = true;
+        await _notificationRepo.SaveAsync();
     }
 
-    public async Task SendNotificationAsync(int userId, int? orderId, string title, string message)
+    public async Task SendAsync(int clientId, int? deliveryId, string title, string message)
     {
         var notification = new Notification
         {
-            UserId    = userId,
-            OrderId   = orderId,
-            Title     = title,
-            Message   = message,
-            IsRead    = false,
-            CreatedAt = DateTime.UtcNow
+            ClientId   = clientId,
+            DeliveryId = deliveryId,
+            Title      = title,
+            Message    = message,
+            IsRead     = false,
+            CreatedAt  = DateTime.UtcNow
         };
 
-        await _notificationRepo.InsertAsync(notification);
+        await _notificationRepo.CreateAsync(notification);
 
-        // TODO: Send push notification via FCM (pending issue)
-        // var fcmToken = await _notificationRepo.GetFcmTokenAsync(userId);
-        // if (!string.IsNullOrEmpty(fcmToken))
-        //     await SendFcmPushAsync(fcmToken, title, message);
-
-        _logger.LogInformation("Notification saved for user {UserId}: {Title}", userId, title);
+        try
+        {
+            var fcmToken = await _notificationRepo.GetFcmTokenAsync(clientId);
+            if (!string.IsNullOrEmpty(fcmToken))
+                await SendFcmPushAsync(fcmToken, title, message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "FCM push failed for client {ClientId}", clientId);
+        }
     }
 
-    public async Task SaveFcmTokenAsync(int userId, string token)
+    public async Task UpdateFcmTokenAsync(int clientId, string token)
     {
-        await _notificationRepo.UpdateFcmTokenAsync(userId, token);
+        await _notificationRepo.UpdateFcmTokenAsync(clientId, token);
     }
 
-    // TODO: Implement FCM push delivery (pending issue)
-    // private async Task SendFcmPushAsync(string fcmToken, string title, string message)
-    // {
-    //     // Use FirebaseAdmin SDK or HTTP call to FCM v1 API
-    // }
-
-    private static NotificationDto ToDto(Notification n) => new()
+    private static async Task SendFcmPushAsync(string fcmToken, string title, string body)
     {
-        Id        = n.Id,
-        UserId    = n.UserId,
-        OrderId   = n.OrderId,
-        Title     = n.Title,
-        Message   = n.Message,
-        IsRead    = n.IsRead,
-        CreatedAt = n.CreatedAt
-    };
+        if (FirebaseApp.DefaultInstance is null)
+            return;
+
+        var msg = new FirebaseAdmin.Messaging.Message
+        {
+            Token        = fcmToken,
+            Notification = new FirebaseAdmin.Messaging.Notification { Title = title, Body = body }
+        };
+        await FirebaseAdmin.Messaging.FirebaseMessaging.DefaultInstance.SendAsync(msg);
+    }
 }
