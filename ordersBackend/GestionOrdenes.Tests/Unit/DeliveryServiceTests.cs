@@ -4,6 +4,7 @@ using OrderManagement.Common;
 using OrderManagement.Models.Entities;
 using OrderManagement.Repositories;
 using OrderManagement.Services;
+using OrderManagement.Models.DTOs.Deliveries;
 
 namespace GestionOrdenes.Tests.Unit;
 
@@ -78,6 +79,6 @@ public class DeliveryServiceTests
         });
 
         await Assert.ThrowsAsync<DomainException>(() =>
-            CreateService(deliveryRepo).UpdateStatusAsync(1, new Models.DTOs.Deliveries.UpdateStatusRequest { Status = "pending" }));
+            CreateService(deliveryRepo).UpdateStatusAsync(1, new UpdateStatusRequest { Status = "pending" }));
     }
 }
