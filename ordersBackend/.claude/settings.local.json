@@ -9,7 +9,9 @@
       "Bash(git commit -m ' *)",
       "Bash(Move-Item *)",
       "PowerShell(Move-Item *)",
-      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Usuario\\\\Documents\\\\GitHub\\\\orders-api-backend\\\\ordersBackend\\\\GestionOrdenes\\\\\" -Recurse -Force | Select-Object -Property FullName | ForEach-Object { $_.FullName } | Sort-Object)"
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Usuario\\\\Documents\\\\GitHub\\\\orders-api-backend\\\\ordersBackend\\\\GestionOrdenes\\\\\" -Recurse -Force | Select-Object -Property FullName | ForEach-Object { $_.FullName } | Sort-Object)",
+      "Bash(dotnet build *)",
+      "Bash(dotnet test *)"
     ]
   }
 }
