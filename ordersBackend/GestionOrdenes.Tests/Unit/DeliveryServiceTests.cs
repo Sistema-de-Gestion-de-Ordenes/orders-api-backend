@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Moq;
 using OrderManagement.Common;
+using OrderManagement.Models.DTOs.Deliveries;
 using OrderManagement.Models.Entities;
 using OrderManagement.Repositories;
 using OrderManagement.Services;
@@ -78,6 +79,29 @@ public class DeliveryServiceTests
         });
 
         await Assert.ThrowsAsync<DomainException>(() =>
-            CreateService(deliveryRepo).UpdateStatusAsync(1, new Models.DTOs.Deliveries.UpdateStatusRequest { Status = "pending" }));
+            CreateService(deliveryRepo).UpdateStatusAsync(1, new UpdateStatusRequest { Status = "pending" }));
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ExistingDelivery_CallsDeleteOnRepository()
+    {
+        var delivery = new Delivery { Id = 10, ClientId = 1, DriverId = 1, Origin = "A", Destination = "B" };
+
+        var deliveryRepo = new Mock<IDeliveryRepository>();
+        deliveryRepo.Setup(r => r.GetByIdAsync(10)).ReturnsAsync(delivery);
+        deliveryRepo.Setup(r => r.DeleteAsync(delivery)).Returns(Task.CompletedTask);
+
+        await CreateService(deliveryRepo).DeleteAsync(10);
+
+        deliveryRepo.Verify(r => r.DeleteAsync(delivery), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_DeliveryNotFound_ThrowsNotFoundException()
+    {
+        var deliveryRepo = new Mock<IDeliveryRepository>();
+        deliveryRepo.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((Delivery?)null);
+
+        await Assert.ThrowsAsync<NotFoundException>(() => CreateService(deliveryRepo).DeleteAsync(99));
     }
 }
