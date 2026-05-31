@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore GestionOrdenes/GestionOrdenes.csproj
+
+      - name: Build
+        run: dotnet build GestionOrdenes/GestionOrdenes.csproj --no-restore --configuration Release
+
+      - name: Run unit tests
+        run: dotnet test GestionOrdenes.Tests/GestionOrdenes.Tests.csproj --no-build --configuration Release --filter "Category!=Integration" --verbosity normal
