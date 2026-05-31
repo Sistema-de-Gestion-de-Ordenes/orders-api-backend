@@ -56,4 +56,60 @@ public class DeliveriesControllerTests
 
         Assert.IsType<BadRequestObjectResult>(response);
     }
+
+    [Fact]
+    public async Task Update_ReturnsOk_WhenDeliveryIsUpdated()
+    {
+        var service = new Mock<IDeliveryService>();
+        service.Setup(s => s.UpdateAsync(1, It.IsAny<UpdateDeliveryRequest>()))
+               .ReturnsAsync(new DeliveryResponse
+               {
+                   Id = 1, ClientId = 1, DriverId = 2,
+                   Origin = "New Origin", Destination = "New Destination", Status = "pending"
+               });
+        var controller = new DeliveriesController(service.Object);
+
+        var response = await controller.Update(1, new UpdateDeliveryRequest
+        {
+            Origin = "New Origin", Destination = "New Destination", DriverId = 2
+        });
+
+        var ok      = Assert.IsType<OkObjectResult>(response);
+        var payload = Assert.IsType<DeliveryResponse>(ok.Value);
+        Assert.Equal(1, payload.Id);
+        Assert.Equal(2, payload.DriverId);
+        Assert.Equal("New Origin", payload.Origin);
+    }
+
+    [Fact]
+    public async Task Update_ReturnsNotFound_WhenDeliveryDoesNotExist()
+    {
+        var service = new Mock<IDeliveryService>();
+        service.Setup(s => s.UpdateAsync(99, It.IsAny<UpdateDeliveryRequest>()))
+               .ThrowsAsync(new NotFoundException("The delivery with id 99 does not exist."));
+        var controller = new DeliveriesController(service.Object);
+
+        var response = await controller.Update(99, new UpdateDeliveryRequest
+        {
+            Origin = "A", Destination = "B", DriverId = 1
+        });
+
+        Assert.IsType<NotFoundObjectResult>(response);
+    }
+
+    [Fact]
+    public async Task Update_ReturnsNotFound_WhenDriverDoesNotExist()
+    {
+        var service = new Mock<IDeliveryService>();
+        service.Setup(s => s.UpdateAsync(1, It.IsAny<UpdateDeliveryRequest>()))
+               .ThrowsAsync(new NotFoundException("The driver with id 999 does not exist."));
+        var controller = new DeliveriesController(service.Object);
+
+        var response = await controller.Update(1, new UpdateDeliveryRequest
+        {
+            Origin = "A", Destination = "B", DriverId = 999
+        });
+
+        Assert.IsType<NotFoundObjectResult>(response);
+    }
 }
