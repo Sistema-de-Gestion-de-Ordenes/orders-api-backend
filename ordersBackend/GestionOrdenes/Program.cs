@@ -19,6 +19,7 @@ builder.Services.AddDbContext<OrderManagementDbContext>(options =>
 builder.Services.AddControllers();
 
 // --- Repositories ---
+builder.Services.AddScoped<IAuthRepository,         AuthRepository>();
 builder.Services.AddScoped<IClientRepository,       ClientRepository>();
 builder.Services.AddScoped<IDriverRepository,       DriverRepository>();
 builder.Services.AddScoped<IDeliveryRepository,     DeliveryRepository>();
