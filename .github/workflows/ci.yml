@@ -20,10 +20,10 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore GestionOrdenes/GestionOrdenes.csproj
+        run: dotnet restore ordersBackend/GestionOrdenes/GestionOrdenes.csproj
 
       - name: Build
-        run: dotnet build GestionOrdenes/GestionOrdenes.csproj --no-restore --configuration Release
+        run: dotnet build ordersBackend/GestionOrdenes/GestionOrdenes.csproj --no-restore --configuration Release
 
       - name: Run unit tests
-        run: dotnet test GestionOrdenes.Tests/GestionOrdenes.Tests.csproj --no-build --configuration Release --filter "Category!=Integration" --verbosity normal
+        run: dotnet test ordersBackend/GestionOrdenes.Tests/GestionOrdenes.Tests.csproj --no-build --configuration Release --filter "Category!=Integration" --verbosity normal
