@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using OrderManagement.Common;
 using OrderManagement.Models.DTOs.Deliveries;
 using OrderManagement.Services;
-using Microsoft.AspNetCore.Authorization;
 namespace OrderManagement.Controllers;
 
 [ApiController]
