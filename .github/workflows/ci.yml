@@ -25,5 +25,8 @@ jobs:
       - name: Build
         run: dotnet build ordersBackend/GestionOrdenes/GestionOrdenes.csproj --no-restore --configuration Release
 
+      - name: Build tests project
+        run: dotnet build ordersBackend/GestionOrdenes.Tests/GestionOrdenes.Tests.csproj --configuration Release
+
       - name: Run unit tests
-        run: dotnet test ordersBackend/GestionOrdenes.Tests/GestionOrdenes.Tests.csproj --no-build --configuration Release --filter "Category!=Integration" --verbosity normal
+        run: dotnet test ordersBackend/GestionOrdenes.Tests/GestionOrdenes.Tests.csproj --configuration Release --filter "Category!=Integration" --verbosity normal
