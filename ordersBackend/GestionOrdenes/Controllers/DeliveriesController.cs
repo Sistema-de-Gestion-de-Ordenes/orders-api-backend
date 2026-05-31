@@ -50,6 +50,7 @@ public class DeliveriesController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateDeliveryRequest dto)
     {
         try
