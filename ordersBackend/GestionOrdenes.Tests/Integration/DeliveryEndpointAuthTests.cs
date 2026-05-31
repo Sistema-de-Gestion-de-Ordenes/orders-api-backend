@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace GestionOrdenes.Tests.Integration;
 
+[Trait("Category", "Integration")]
 public class DeliveryEndpointAuthTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly HttpClient _client;
