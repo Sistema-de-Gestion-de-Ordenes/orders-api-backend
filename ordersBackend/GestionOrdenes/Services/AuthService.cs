@@ -24,22 +24,39 @@ public class AuthService : IAuthService
         if (string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Password))
             throw new DomainException("Email and password are required.");
 
-        var client = await _authRepo.GetByEmailAsync(dto.Email)
-            ?? throw new DomainException("Invalid credentials.", 401);
+        var client = await _authRepo.GetByEmailAsync(dto.Email);
+        if (client is not null)
+        {
+            if (!BCrypt.Net.BCrypt.Verify(dto.Password, client.PasswordHash))
+                throw new DomainException("Invalid credentials.", 401);
 
-        if (!BCrypt.Net.BCrypt.Verify(dto.Password, client.PasswordHash))
-            throw new DomainException("Invalid credentials.", 401);
+            return new LoginResponse { Token = GenerateToken(client.Id, client.Email, client.Name, "client") };
+        }
 
+        var user = await _authRepo.GetUserByEmailAsync(dto.Email);
+        if (user is not null)
+        {
+            if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
+                throw new DomainException("Invalid credentials.", 401);
+
+            return new LoginResponse { Token = GenerateToken(user.Id, user.Email, user.Name, user.Role) };
+        }
+
+        throw new DomainException("Invalid credentials.", 401);
+    }
+
+    private string GenerateToken(int id, string email, string name, string role)
+    {
         var jwtSettings = _config.GetSection("JwtSettings");
         var key         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]!));
         var expiration  = DateTime.UtcNow.AddMinutes(_config.GetValue<int>("JwtSettings:ExpirationMinutes"));
 
         var claims = new[]
         {
-            new Claim(ClaimTypes.NameIdentifier, client.Id.ToString()),
-            new Claim(ClaimTypes.Email,          client.Email),
-            new Claim(ClaimTypes.Name,           client.Name),
-            new Claim(ClaimTypes.Role,           "client")
+            new Claim(ClaimTypes.NameIdentifier, id.ToString()),
+            new Claim(ClaimTypes.Email,          email),
+            new Claim(ClaimTypes.Name,           name),
+            new Claim(ClaimTypes.Role,           role)
         };
 
         var token = new JwtSecurityToken(
@@ -49,6 +66,6 @@ public class AuthService : IAuthService
             expires:            expiration,
             signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
 
-        return new LoginResponse { Token = new JwtSecurityTokenHandler().WriteToken(token) };
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }

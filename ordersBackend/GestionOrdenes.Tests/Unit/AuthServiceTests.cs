@@ -1,3 +1,5 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using Microsoft.Extensions.Configuration;
 using Moq;
 using OrderManagement.Common;
@@ -41,6 +43,7 @@ public class AuthServiceTests
     {
         var repo = new Mock<IAuthRepository>();
         repo.Setup(r => r.GetByEmailAsync("notfound@test.com")).ReturnsAsync((Client?)null);
+        repo.Setup(r => r.GetUserByEmailAsync("notfound@test.com")).ReturnsAsync((User?)null);
 
         var ex = await Assert.ThrowsAsync<DomainException>(() =>
             new AuthService(repo.Object, BuildJwtConfig())
@@ -62,6 +65,44 @@ public class AuthServiceTests
         var ex = await Assert.ThrowsAsync<DomainException>(() =>
             new AuthService(repo.Object, BuildJwtConfig())
                 .LoginAsync(new LoginRequest { Email = "bob@test.com", Password = "wrong-password" }));
+
+        Assert.Equal(401, ex.StatusCode);
+        Assert.Equal("Invalid credentials.", ex.Message);
+    }
+
+    [Fact]
+    public async Task LoginAsync_ValidUserCredentials_ReturnsLoginResponse()
+    {
+        var hash = BCrypt.Net.BCrypt.HashPassword("userpass");
+        var user = new User { Id = 10, Name = "Carlos", Email = "carlos@test.com", PasswordHash = hash, Role = "admin" };
+
+        var repo = new Mock<IAuthRepository>();
+        repo.Setup(r => r.GetByEmailAsync("carlos@test.com")).ReturnsAsync((Client?)null);
+        repo.Setup(r => r.GetUserByEmailAsync("carlos@test.com")).ReturnsAsync(user);
+
+        var result = await new AuthService(repo.Object, BuildJwtConfig())
+            .LoginAsync(new LoginRequest { Email = "carlos@test.com", Password = "userpass" });
+
+        Assert.False(string.IsNullOrEmpty(result.Token));
+
+        var jwt  = new JwtSecurityTokenHandler().ReadJwtToken(result.Token);
+        var role = jwt.Claims.First(c => c.Type == ClaimTypes.Role).Value;
+        Assert.Equal("admin", role);
+    }
+
+    [Fact]
+    public async Task LoginAsync_WrongPassword_User_ThrowsDomainException401()
+    {
+        var hash = BCrypt.Net.BCrypt.HashPassword("correct-user-pass");
+        var user = new User { Id = 11, Name = "Diana", Email = "diana@test.com", PasswordHash = hash, Role = "admin" };
+
+        var repo = new Mock<IAuthRepository>();
+        repo.Setup(r => r.GetByEmailAsync("diana@test.com")).ReturnsAsync((Client?)null);
+        repo.Setup(r => r.GetUserByEmailAsync("diana@test.com")).ReturnsAsync(user);
+
+        var ex = await Assert.ThrowsAsync<DomainException>(() =>
+            new AuthService(repo.Object, BuildJwtConfig())
+                .LoginAsync(new LoginRequest { Email = "diana@test.com", Password = "wrong-user-pass" }));
 
         Assert.Equal(401, ex.StatusCode);
         Assert.Equal("Invalid credentials.", ex.Message);
