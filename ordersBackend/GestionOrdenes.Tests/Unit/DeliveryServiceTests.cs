@@ -103,6 +103,9 @@ public class DeliveryServiceTests
         deliveryRepo.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((Delivery?)null);
 
         await Assert.ThrowsAsync<NotFoundException>(() => CreateService(deliveryRepo).DeleteAsync(99));
+    }
+
+    [Fact]
     public async Task UpdateAsync_ReturnsUpdatedResponse_WhenDeliveryAndDriverExist()
     {
         var deliveryRepo = new Mock<IDeliveryRepository>();
