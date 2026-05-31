@@ -1,8 +1,8 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OrderManagement.Common;
 using OrderManagement.Models.DTOs.Deliveries;
 using OrderManagement.Services;
-using Microsoft.AspNetCore.Authorization;
 namespace OrderManagement.Controllers;
 
 [ApiController]
@@ -64,6 +64,7 @@ public class DeliveriesController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> Delete(int id)
     {
         try
