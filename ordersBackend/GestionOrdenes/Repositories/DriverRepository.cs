@@ -9,6 +9,9 @@ public class DriverRepository : IDriverRepository
     private readonly OrderManagementDbContext _db;
     public DriverRepository(OrderManagementDbContext db) => _db = db;
 
+    public async Task<List<Driver>> GetAllAsync()
+        => await _db.Drivers.OrderBy(d => d.Name).ToListAsync();
+
     public async Task<Driver?> GetByIdAsync(int id)
         => await _db.Drivers.FirstOrDefaultAsync(d => d.Id == id);
 
