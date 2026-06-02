@@ -66,6 +66,7 @@ public class DeliveryService : IDeliveryService
             },
             Driver = new DriverDetailDto
             {
+                Id       = d.DriverId,
                 Name     = d.Driver?.Name ?? string.Empty,
                 Phone    = d.Driver?.Phone ?? string.Empty,
                 PhotoUrl = d.Driver?.PhotoUrl,
