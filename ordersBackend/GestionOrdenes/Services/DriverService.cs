@@ -16,6 +16,20 @@ public class DriverService : IDriverService
         _driverRepo = driverRepo;
     }
 
+    public async Task<List<DriverResponse>> GetAllAsync()
+    {
+        var drivers = await _driverRepo.GetAllAsync();
+        return drivers.Select(d => new DriverResponse
+        {
+            Id       = d.Id,
+            Name     = d.Name,
+            Vehicle  = d.Vehicle,
+            Plates   = d.Plates,
+            Phone    = d.Phone,
+            PhotoUrl = d.PhotoUrl
+        }).ToList();
+    }
+
     public async Task<DriverResponse> CreateAsync(CreateDriverRequest dto)
     {
         if (dto.Photo is null)
