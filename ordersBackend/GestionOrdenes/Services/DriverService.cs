@@ -7,13 +7,18 @@ namespace OrderManagement.Services;
 
 public class DriverService : IDriverService
 {
-    private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png" };
+    private static readonly HashSet<string> AllowedMimeTypes = new(StringComparer.OrdinalIgnoreCase)
+        { "image/jpeg", "image/jpg", "image/png" };
 
-    private readonly IDriverRepository _driverRepo;
+    private const long MaxPhotoSize = 5 * 1024 * 1024;
 
-    public DriverService(IDriverRepository driverRepo)
+    private readonly IDriverRepository   _driverRepo;
+    private readonly IWebHostEnvironment _env;
+
+    public DriverService(IDriverRepository driverRepo, IWebHostEnvironment env)
     {
         _driverRepo = driverRepo;
+        _env        = env;
     }
 
     public async Task<List<DriverResponse>> GetAllAsync()
@@ -32,19 +37,31 @@ public class DriverService : IDriverService
 
     public async Task<DriverResponse> CreateAsync(CreateDriverRequest dto)
     {
-        if (dto.Photo is null)
-            throw new DomainException("The profile photo is required.");
-
-        var ext = Path.GetExtension(dto.Photo.FileName);
-        if (!AllowedExtensions.Contains(ext))
+        if (!AllowedMimeTypes.Contains(dto.Photo.ContentType))
             throw new DomainException("Only JPG or PNG images are allowed.");
 
-        var existing = await _driverRepo.GetByPlatesAsync(dto.Plates);
-        if (existing is not null)
+        if (dto.Photo.Length > MaxPhotoSize)
+            throw new DomainException("Photo must not exceed 5 MB.");
+
+        if (await _driverRepo.GetByPlatesAsync(dto.Plates) is not null)
             throw new ConflictException("The license plates are already registered.");
 
-        // TODO: Upload to Cloudinary (pending issue)
-        var photoUrl = $"https://placeholder.storage.com/drivers/{Guid.NewGuid()}{ext}";
+        var ext          = Path.GetExtension(dto.Photo.FileName).ToLowerInvariant();
+        var fileName     = $"{Guid.NewGuid()}{ext}";
+        var webRoot      = _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot");
+        var uploadFolder = Path.Combine(webRoot, "uploads", "drivers");
+        Directory.CreateDirectory(uploadFolder);
+        var filePath = Path.Combine(uploadFolder, fileName);
+
+        try
+        {
+            using var stream = new FileStream(filePath, FileMode.Create);
+            await dto.Photo.CopyToAsync(stream);
+        }
+        catch
+        {
+            throw new DomainException("Failed to save photo. Please try again.");
+        }
 
         var driver = new Driver
         {
@@ -52,12 +69,21 @@ public class DriverService : IDriverService
             Vehicle   = dto.Vehicle,
             Plates    = dto.Plates,
             Phone     = dto.Phone,
-            PhotoUrl  = photoUrl,
+            PhotoUrl  = $"/uploads/drivers/{fileName}",
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
 
-        var created = await _driverRepo.CreateAsync(driver);
+        Driver created;
+        try
+        {
+            created = await _driverRepo.CreateAsync(driver);
+        }
+        catch
+        {
+            if (File.Exists(filePath)) File.Delete(filePath);
+            throw;
+        }
 
         return new DriverResponse
         {
