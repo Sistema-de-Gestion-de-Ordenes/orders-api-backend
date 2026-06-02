@@ -43,5 +43,4 @@ public class DeliveryRepository : IDeliveryRepository
         await _db.SaveChangesAsync();
     }
 
-    public async Task SaveAsync() => await _db.SaveChangesAsync();
 }

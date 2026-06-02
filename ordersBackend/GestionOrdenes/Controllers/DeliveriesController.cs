@@ -78,7 +78,7 @@ public class DeliveriesController : ControllerBase
     }
 
     [HttpPatch("{id:int}/status")]
-    [Authorize(Roles = "admin,driver")]
+    [Authorize(Roles = "admin")]
     [ProducesResponseType(typeof(DeliveryStatusResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
