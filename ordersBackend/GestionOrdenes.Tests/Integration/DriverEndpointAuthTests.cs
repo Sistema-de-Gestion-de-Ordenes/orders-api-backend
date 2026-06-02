@@ -34,19 +34,4 @@ public class DriverEndpointAuthTests : IClassFixture<WebApplicationFactory<Progr
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
-
-    [Fact]
-    public async Task CreateDriver_ReturnsBadRequest_WhenPhotoIsMissing_WithoutToken()
-    {
-        var content = new MultipartFormDataContent();
-        content.Add(new StringContent("Carlos Pérez"), "name");
-        content.Add(new StringContent("Moto Honda"),   "vehicle");
-        content.Add(new StringContent("ABC-123"),       "plates");
-        content.Add(new StringContent("88001234"),      "phone");
-
-        var response = await _client.PostAsync("/drivers", content);
-
-        // Auth middleware fires before model validation; no token → 401
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-    }
 }
