@@ -1,91 +1,47 @@
-using Dapper;
-using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using OrderManagement.Models.Entities;
-using OrderManagement.Repositories.Interfaces;
-using OrderManagement.Repositories.Models;
+using OrderManagement.Persistence;
 
 namespace OrderManagement.Repositories;
 
 public class DeliveryRepository : IDeliveryRepository
 {
-    private readonly string _connectionString;
-
-    public DeliveryRepository(IConfiguration configuration)
-    {
-        _connectionString = configuration.GetConnectionString("DefaultConnection")!;
-    }
-
-    private SqlConnection CreateConnection() => new(_connectionString);
+    private readonly OrderManagementDbContext _db;
+    public DeliveryRepository(OrderManagementDbContext db) => _db = db;
 
     public async Task<IEnumerable<Delivery>> GetAllAsync()
+        => await _db.Deliveries
+            .Include(d => d.Client)
+            .Include(d => d.Driver)
+            .OrderByDescending(d => d.CreatedAt)
+            .ToListAsync();
+
+    public async Task<Delivery?> GetByIdAsync(int id)
+        => await _db.Deliveries
+            .Include(d => d.Client)
+            .Include(d => d.Driver)
+            .FirstOrDefaultAsync(d => d.Id == id);
+
+    public async Task<Delivery> CreateAsync(Delivery delivery)
     {
-        using var conn = CreateConnection();
-        const string sql = @"
-            SELECT
-                d.id                              AS id,
-                d.id                              AS order_id,
-                CAST(d.origin AS nvarchar(max))   AS evidence_url,
-                CAST(d.destination AS nvarchar(max)) AS notes,
-                d.created_at                      AS delivered_at
-            FROM deliveries
-            ORDER BY d.created_at DESC";
-        return await conn.QueryAsync<Delivery>(sql);
+        _db.Deliveries.Add(delivery);
+        await _db.SaveChangesAsync();
+        return delivery;
     }
 
-    public async Task<Delivery?> GetByOrderIdAsync(int orderId)
+    public async Task<Delivery> UpdateAsync(Delivery delivery)
     {
-        using var conn = CreateConnection();
-        const string sql = @"
-            SELECT
-                d.id                              AS id,
-                d.id                              AS order_id,
-                CAST(d.origin AS nvarchar(max))   AS evidence_url,
-                CAST(d.destination AS nvarchar(max)) AS notes,
-                d.created_at                      AS delivered_at
-            FROM deliveries d
-            WHERE d.id = @orderId";
-        return await conn.QueryFirstOrDefaultAsync<Delivery>(sql, new { orderId });
+        delivery.UpdatedAt = DateTime.UtcNow;
+        _db.Deliveries.Update(delivery);
+        await _db.SaveChangesAsync();
+        return delivery;
     }
 
-    public async Task<DeliveryDetailRecord?> GetDetailByIdAsync(int id)
+    public async Task DeleteAsync(Delivery delivery)
     {
-        using var conn = CreateConnection();
-        const string sql = @"
-            SELECT
-                d.id                    AS Id,
-                d.status                AS Status,
-                d.origin                AS Origin,
-                d.destination           AS Destination,
-                d.customer_id           AS CustomerId,
-                c.name                  AS CustomerName,
-                c.email                 AS CustomerEmail,
-                c.created_at            AS CustomerRegisteredSince,
-                dr.name                 AS DriverName,
-                dr.phone                AS DriverPhone,
-                COALESCE(dr.photo_url, '') AS DriverPhotoUrl,
-                dr.is_verified          AS DriverVerified
-            FROM deliveries d
-            INNER JOIN customers c ON c.id = d.customer_id
-            INNER JOIN drivers dr ON dr.id = d.driver_id
-            WHERE d.id = @id";
-
-        return await conn.QueryFirstOrDefaultAsync<DeliveryDetailRecord>(sql, new { id });
+        _db.Deliveries.Remove(delivery);
+        await _db.SaveChangesAsync();
     }
 
-    public async Task<int> InsertAsync(Delivery delivery)
-    {
-        using var conn = CreateConnection();
-        const string sql = @"
-            INSERT INTO deliveries (customer_id, driver_id, origin, destination, status, created_at, updated_at)
-            VALUES (1, 1, @EvidenceUrl, @Notes, 'pending', @DeliveredAt, @DeliveredAt);
-            SELECT CAST(SCOPE_IDENTITY() as int);";
-        return await conn.ExecuteScalarAsync<int>(sql, delivery);
-    }
-
-    public async Task UpdateStatusAsync(int id, string newStatus)
-    {
-        using var conn = CreateConnection();
-        const string sql = "UPDATE deliveries SET status = @newStatus, updated_at = GETUTCDATE() WHERE id = @id";
-        await conn.ExecuteAsync(sql, new { id, newStatus });
-    }
+    public async Task SaveAsync() => await _db.SaveChangesAsync();
 }

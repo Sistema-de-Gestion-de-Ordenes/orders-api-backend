@@ -1,23 +1,25 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OrderManagement.Common;
-using OrderManagement.Models.DTOs.Drivers;
+using OrderManagement.Models.DTOs.Clients;
 using OrderManagement.Services;
 
 namespace OrderManagement.Controllers;
 
 [ApiController]
-[Route("drivers")]
-public class DriversController : ControllerBase
+[Route("clients")]
+public class ClientsController : ControllerBase
 {
-    private readonly IDriverService _driverService;
-    public DriversController(IDriverService driverService) => _driverService = driverService;
+    private readonly IClientService _clientService;
+    public ClientsController(IClientService clientService) => _clientService = clientService;
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromForm] CreateDriverRequest dto)
+    [AllowAnonymous]
+    public async Task<IActionResult> Create([FromForm] CreateClientRequest dto)
     {
         try
         {
-            var result = await _driverService.CreateAsync(dto);
+            var result = await _clientService.CreateAsync(dto);
             return StatusCode(201, result);
         }
         catch (ConflictException ex)  { return Conflict(new { error = ex.Message }); }

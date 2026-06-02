@@ -14,3 +14,8 @@ public class NotFoundException : DomainException
 {
     public NotFoundException(string message) : base(message, 404) { }
 }
+
+public class ConflictException : DomainException
+{
+    public ConflictException(string message) : base(message, 409) { }
+}

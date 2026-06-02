@@ -5,38 +5,34 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using OrderManagement.Middleware;
 using OrderManagement.Persistence;
 using OrderManagement.Repositories;
-using OrderManagement.Repositories.Interfaces;
 using OrderManagement.Services;
-using OrderManagement.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// --- Database ---
+builder.Services.AddDbContext<OrderManagementDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.")));
+
 builder.Services.AddControllers();
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
-builder.Services.AddDbContext<OrderManagementDbContext>(options =>
-    options.UseSqlServer(connectionString));
-
-// --- Repositories (Scoped) ---
-builder.Services.AddScoped<ICustomerRepository,     CustomerRepository>();
+// --- Repositories ---
+builder.Services.AddScoped<IAuthRepository,         AuthRepository>();
+builder.Services.AddScoped<IClientRepository,       ClientRepository>();
 builder.Services.AddScoped<IDriverRepository,       DriverRepository>();
-builder.Services.AddScoped<IOrderRepository,        OrderRepository>();
 builder.Services.AddScoped<IDeliveryRepository,     DeliveryRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 
-// --- Services (Scoped) ---
+// --- Services ---
 builder.Services.AddScoped<IAuthService,         AuthService>();
-builder.Services.AddScoped<ICustomerService,     CustomerService>();
+builder.Services.AddScoped<IClientService,       ClientService>();
 builder.Services.AddScoped<IDriverService,       DriverService>();
-builder.Services.AddScoped<IOrderService,        OrderService>();
 builder.Services.AddScoped<IDeliveryService,     DeliveryService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 
-// --- JWT Authentication ---
+// --- JWT ---
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey   = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]!);
 
@@ -62,35 +58,27 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
-// --- CORS (open for development) ---
+// --- CORS ---
 builder.Services.AddCors(options =>
-{
-    options.AddPolicy("DevCors", policy =>
-        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
-});
+    options.AddPolicy("DevCors", p => p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
 
-// --- Swagger with JWT support ---
+// --- Swagger ---
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Order Management API", Version = "v1" });
-
-    var securityScheme = new OpenApiSecurityScheme
+    var scheme = new OpenApiSecurityScheme
     {
         Name         = "Authorization",
-        Description  = "JWT Bearer token. Example: Bearer {token}",
+        Description  = "JWT Bearer token",
         In           = ParameterLocation.Header,
         Type         = SecuritySchemeType.Http,
         Scheme       = "bearer",
         BearerFormat = "JWT",
         Reference    = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
     };
-
-    c.AddSecurityDefinition("Bearer", securityScheme);
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        { securityScheme, Array.Empty<string>() }
-    });
+    c.AddSecurityDefinition("Bearer", scheme);
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement { { scheme, Array.Empty<string>() } });
 });
 
 // --- Firebase ---
@@ -98,17 +86,11 @@ var firebaseCredPath = builder.Configuration["Firebase:CredentialsPath"];
 if (!string.IsNullOrEmpty(firebaseCredPath) && File.Exists(firebaseCredPath) && FirebaseApp.DefaultInstance is null)
 {
 #pragma warning disable CS0618
-    FirebaseApp.Create(new AppOptions
-    {
-        Credential = GoogleCredential.FromFile(firebaseCredPath)
-    });
+    FirebaseApp.Create(new AppOptions { Credential = GoogleCredential.FromFile(firebaseCredPath) });
 #pragma warning restore CS0618
 }
 
 var app = builder.Build();
-
-// Global exception handler — must be first in the pipeline
-app.UseMiddleware<ExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
@@ -117,6 +99,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("DevCors");
+app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
