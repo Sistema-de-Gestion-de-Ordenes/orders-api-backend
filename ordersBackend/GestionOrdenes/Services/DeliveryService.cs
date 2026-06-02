@@ -121,7 +121,7 @@ public class DeliveryService : IDeliveryService
         await _deliveryRepo.DeleteAsync(delivery);
     }
 
-    public async Task<DeliveryStatusResponse> UpdateStatusAsync(int id, UpdateStatusRequest dto)
+    public async Task<DeliveryStatusResponse> UpdateStatusAsync(int id, UpdateStatusRequest dto, string performedBy)
     {
         var normalizedStatus = dto.Status.ToLowerInvariant();
 
@@ -131,8 +131,13 @@ public class DeliveryService : IDeliveryService
         if (!ValidTransitions.TryGetValue(delivery.Status, out var allowed) || !allowed.Contains(normalizedStatus))
             throw new DomainException($"Cannot transition from {delivery.Status} to {normalizedStatus}.");
 
+        var previousStatus = delivery.Status;
         delivery.Status = normalizedStatus;
         await _deliveryRepo.UpdateAsync(delivery);
+
+        _logger.LogInformation(
+            "Delivery {DeliveryId} status changed from {PreviousStatus} to {NewStatus} by {PerformedBy}",
+            id, previousStatus, normalizedStatus, performedBy);
 
         try
         {
@@ -141,6 +146,10 @@ public class DeliveryService : IDeliveryService
                 id,
                 "Delivery status updated",
                 $"Delivery #{id} status has changed to: {normalizedStatus}.");
+
+            _logger.LogInformation(
+                "Notification sent for delivery {DeliveryId} to client {ClientId}",
+                id, delivery.ClientId);
         }
         catch (Exception ex)
         {

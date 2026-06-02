@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OrderManagement.Common;
@@ -88,7 +89,8 @@ public class DeliveriesController : ControllerBase
     {
         try
         {
-            var result = await _deliveryService.UpdateStatusAsync(id, dto);
+            var performedBy = User.FindFirstValue(ClaimTypes.Name) ?? "unknown";
+            var result = await _deliveryService.UpdateStatusAsync(id, dto, performedBy);
             return Ok(result);
         }
         catch (NotFoundException ex) { return NotFound(new { error = ex.Message }); }
