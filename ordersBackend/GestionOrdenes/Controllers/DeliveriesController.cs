@@ -77,6 +77,13 @@ public class DeliveriesController : ControllerBase
     }
 
     [HttpPatch("{id:int}/status")]
+    [Authorize(Roles = "admin,driver")]
+    [ProducesResponseType(typeof(DeliveryStatusResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateStatusRequest dto)
     {
         try
@@ -87,25 +94,5 @@ public class DeliveriesController : ControllerBase
         catch (NotFoundException ex) { return NotFound(new { error = ex.Message }); }
         catch (DomainException ex)   { return BadRequest(new { error = ex.Message }); }
         catch (Exception)            { return StatusCode(500, new { error = "Internal server error" }); }
-    }
-
-    [HttpPatch("{id}/status")]
-    [Authorize(Roles = "Admin,Driver")]
-    [ProducesResponseType(typeof(ApiResponse<DeliveryStatusResponseDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> UpdateStatus(string id, [FromBody] UpdateDeliveryStatusDto dto)
-    {
-        if (!ModelState.IsValid)
-            return BadRequest(ApiResponse<object>.Fail("The field status is required."));
-
-        if (!int.TryParse(id, out var deliveryId) || deliveryId <= 0)
-            return BadRequest(ApiResponse<object>.Fail("Invalid delivery id format."));
-
-        var result = await _deliveryService.UpdateStatusAsync(deliveryId, dto.Status);
-        return Ok(ApiResponse<DeliveryStatusResponseDto>.SuccessResult(result));
     }
 }
