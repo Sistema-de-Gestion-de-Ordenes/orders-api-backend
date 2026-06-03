@@ -9,5 +9,5 @@ public interface IDeliveryService
     Task<DeliveryResponse> CreateAsync(CreateDeliveryRequest dto);
     Task<DeliveryResponse> UpdateAsync(int id, UpdateDeliveryRequest dto);
     Task DeleteAsync(int id);
-    Task<DeliveryStatusResponse> UpdateStatusAsync(int id, UpdateStatusRequest dto);
+    Task<DeliveryStatusResponse> UpdateStatusAsync(int id, UpdateStatusRequest dto, string performedBy);
 }

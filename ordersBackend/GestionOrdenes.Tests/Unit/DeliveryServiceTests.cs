@@ -22,6 +22,8 @@ public class DeliveryServiceTests
             (notificationService ?? new Mock<INotificationService>()).Object,
             new Mock<ILogger<DeliveryService>>().Object);
 
+    // --- GetByIdAsync ---
+
     [Fact]
     public async Task GetByIdAsync_ReturnsMappedDto_WhenDeliveryExists()
     {
@@ -68,6 +70,27 @@ public class DeliveryServiceTests
         await Assert.ThrowsAsync<NotFoundException>(() => CreateService(deliveryRepo).GetByIdAsync(404));
     }
 
+    // --- UpdateStatusAsync ---
+
+    [Fact]
+    public async Task UpdateStatusAsync_ReturnsStatusResponse_WhenTransitionIsValid()
+    {
+        var delivery = new Delivery
+        {
+            Id = 1, Status = "pending", ClientId = 1, DriverId = 1,
+            Origin = "A", Destination = "B"
+        };
+        var deliveryRepo = new Mock<IDeliveryRepository>();
+        deliveryRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(delivery);
+        deliveryRepo.Setup(r => r.UpdateAsync(It.IsAny<Delivery>())).ReturnsAsync((Delivery d) => d);
+
+        var result = await CreateService(deliveryRepo)
+            .UpdateStatusAsync(1, new UpdateStatusRequest { Status = "in_transit" }, "driver1");
+
+        Assert.Equal(1, result.Id);
+        Assert.Equal("in_transit", result.Status);
+    }
+
     [Fact]
     public async Task UpdateStatusAsync_ThrowsDomainException_WhenTransitionIsInvalid()
     {
@@ -79,8 +102,64 @@ public class DeliveryServiceTests
         });
 
         await Assert.ThrowsAsync<DomainException>(() =>
-            CreateService(deliveryRepo).UpdateStatusAsync(1, new UpdateStatusRequest { Status = "pending" }));
+            CreateService(deliveryRepo).UpdateStatusAsync(1, new UpdateStatusRequest { Status = "pending" }, "driver1"));
     }
+
+    [Fact]
+    public async Task UpdateStatusAsync_ThrowsNotFound_WhenDeliveryDoesNotExist()
+    {
+        var deliveryRepo = new Mock<IDeliveryRepository>();
+        deliveryRepo.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((Delivery?)null);
+
+        await Assert.ThrowsAsync<NotFoundException>(() =>
+            CreateService(deliveryRepo).UpdateStatusAsync(99, new UpdateStatusRequest { Status = "in_transit" }, "driver1"));
+    }
+
+    [Fact]
+    public async Task UpdateStatusAsync_CallsNotificationService_AfterSuccessfulStatusChange()
+    {
+        var delivery = new Delivery
+        {
+            Id = 1, Status = "pending", ClientId = 5, DriverId = 1,
+            Origin = "A", Destination = "B"
+        };
+        var deliveryRepo       = new Mock<IDeliveryRepository>();
+        var notificationService = new Mock<INotificationService>();
+        deliveryRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(delivery);
+        deliveryRepo.Setup(r => r.UpdateAsync(It.IsAny<Delivery>())).ReturnsAsync((Delivery d) => d);
+
+        await CreateService(deliveryRepo, notificationService: notificationService)
+            .UpdateStatusAsync(1, new UpdateStatusRequest { Status = "in_transit" }, "driver1");
+
+        notificationService.Verify(
+            n => n.SendAsync(5, 1, It.IsAny<string>(), It.IsAny<string>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateStatusAsync_DoesNotThrow_WhenNotificationFails()
+    {
+        var delivery = new Delivery
+        {
+            Id = 1, Status = "pending", ClientId = 1, DriverId = 1,
+            Origin = "A", Destination = "B"
+        };
+        var deliveryRepo        = new Mock<IDeliveryRepository>();
+        var notificationService = new Mock<INotificationService>();
+        deliveryRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(delivery);
+        deliveryRepo.Setup(r => r.UpdateAsync(It.IsAny<Delivery>())).ReturnsAsync((Delivery d) => d);
+        notificationService
+            .Setup(n => n.SendAsync(It.IsAny<int>(), It.IsAny<int?>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ThrowsAsync(new Exception("FCM unavailable"));
+
+        var exception = await Record.ExceptionAsync(() =>
+            CreateService(deliveryRepo, notificationService: notificationService)
+                .UpdateStatusAsync(1, new UpdateStatusRequest { Status = "in_transit" }, "driver1"));
+
+        Assert.Null(exception);
+    }
+
+    // --- DeleteAsync ---
 
     [Fact]
     public async Task DeleteAsync_ExistingDelivery_CallsDeleteOnRepository()
@@ -104,6 +183,8 @@ public class DeliveryServiceTests
 
         await Assert.ThrowsAsync<NotFoundException>(() => CreateService(deliveryRepo).DeleteAsync(99));
     }
+
+    // --- UpdateAsync ---
 
     [Fact]
     public async Task UpdateAsync_ReturnsUpdatedResponse_WhenDeliveryAndDriverExist()
