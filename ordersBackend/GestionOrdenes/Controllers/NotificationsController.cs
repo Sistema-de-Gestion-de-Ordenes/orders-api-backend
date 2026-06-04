@@ -44,8 +44,14 @@ public class NotificationsController : ControllerBase
     {
         try
         {
-            var clientId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            await _notificationService.UpdateFcmTokenAsync(clientId, dto.FcmToken);
+            var id   = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var role = User.FindFirstValue(ClaimTypes.Role);
+
+            if (role == "admin")
+                await _notificationService.UpdateUserFcmTokenAsync(id, dto.FcmToken);
+            else
+                await _notificationService.UpdateFcmTokenAsync(id, dto.FcmToken);
+
             return Ok(new { message = "FCM token updated successfully" });
         }
         catch (Exception) { return StatusCode(500, new { error = "Internal server error" }); }

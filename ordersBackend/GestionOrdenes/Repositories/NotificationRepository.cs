@@ -44,4 +44,20 @@ public class NotificationRepository : INotificationRepository
             await _db.SaveChangesAsync();
         }
     }
+
+    public async Task UpdateUserFcmTokenAsync(int userId, string token)
+    {
+        var user = await _db.Users.FindAsync(userId);
+        if (user is not null)
+        {
+            user.FcmToken = token;
+            await _db.SaveChangesAsync();
+        }
+    }
+
+    public async Task<IEnumerable<string>> GetAllAdminFcmTokensAsync()
+        => await _db.Users
+            .Where(u => u.Role == "admin" && u.FcmToken != null && u.FcmToken != string.Empty)
+            .Select(u => u.FcmToken!)
+            .ToListAsync();
 }
