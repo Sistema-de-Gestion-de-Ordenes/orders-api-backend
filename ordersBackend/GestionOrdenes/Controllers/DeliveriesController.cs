@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OrderManagement.Common;
@@ -77,11 +78,19 @@ public class DeliveriesController : ControllerBase
     }
 
     [HttpPatch("{id:int}/status")]
+    [Authorize(Roles = "admin")]
+    [ProducesResponseType(typeof(DeliveryStatusResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateStatusRequest dto)
     {
         try
         {
-            var result = await _deliveryService.UpdateStatusAsync(id, dto);
+            var performedBy = User.FindFirstValue(ClaimTypes.Name) ?? "unknown";
+            var result = await _deliveryService.UpdateStatusAsync(id, dto, performedBy);
             return Ok(result);
         }
         catch (NotFoundException ex) { return NotFound(new { error = ex.Message }); }

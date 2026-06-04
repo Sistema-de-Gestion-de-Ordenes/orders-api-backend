@@ -9,5 +9,4 @@ public interface IDeliveryRepository
     Task<Delivery> CreateAsync(Delivery delivery);
     Task<Delivery> UpdateAsync(Delivery delivery);
     Task DeleteAsync(Delivery delivery);
-    Task SaveAsync();
 }
