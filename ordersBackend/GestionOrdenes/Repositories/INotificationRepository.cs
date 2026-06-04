@@ -10,4 +10,6 @@ public interface INotificationRepository
     Task SaveAsync();
     Task<string?> GetFcmTokenAsync(int clientId);
     Task UpdateFcmTokenAsync(int clientId, string token);
+    Task UpdateUserFcmTokenAsync(int userId, string token);
+    Task<IEnumerable<string>> GetAllAdminFcmTokensAsync();
 }

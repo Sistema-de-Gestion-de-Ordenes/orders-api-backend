@@ -64,11 +64,23 @@ public class NotificationService : INotificationService
         {
             _logger.LogWarning(ex, "FCM push failed for client {ClientId}", clientId);
         }
+
+        var adminTokens = await _notificationRepo.GetAllAdminFcmTokensAsync();
+        foreach (var adminToken in adminTokens)
+        {
+            try   { await SendFcmPushAsync(adminToken, title, message); }
+            catch (Exception ex) { _logger.LogWarning(ex, "FCM push failed for admin token"); }
+        }
     }
 
     public async Task UpdateFcmTokenAsync(int clientId, string token)
     {
         await _notificationRepo.UpdateFcmTokenAsync(clientId, token);
+    }
+
+    public async Task UpdateUserFcmTokenAsync(int userId, string token)
+    {
+        await _notificationRepo.UpdateUserFcmTokenAsync(userId, token);
     }
 
     private static async Task SendFcmPushAsync(string fcmToken, string title, string body)

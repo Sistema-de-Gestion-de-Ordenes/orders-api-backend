@@ -8,4 +8,5 @@ public interface INotificationService
     Task MarkAsReadAsync(int id);
     Task SendAsync(int clientId, int? deliveryId, string title, string message);
     Task UpdateFcmTokenAsync(int clientId, string token);
+    Task UpdateUserFcmTokenAsync(int userId, string token);
 }
