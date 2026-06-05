@@ -26,4 +26,15 @@ public class ClientsController : ControllerBase
         catch (DomainException ex)    { return BadRequest(new { error = ex.Message }); }
         catch (Exception)             { return StatusCode(500, new { error = "Internal server error" }); }
     }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        try
+        {
+            var result = await _clientService.GetAllAsync();
+            return Ok(result);
+        }
+        catch (Exception) { return StatusCode(500, new { error = "Internal server error" }); }
+    }
 }

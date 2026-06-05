@@ -7,4 +7,5 @@ public interface IClientRepository
     Task<Client?> GetByIdAsync(int id);
     Task<Client?> GetByEmailAsync(string email);
     Task<Client> CreateAsync(Client client);
+    Task<IEnumerable<Client>> GetAllAsync();
 }

@@ -80,4 +80,17 @@ public class ClientService : IClientService
             PhotoUrl = created.PhotoUrl
         };
     }
+
+    public async Task<IEnumerable<ClientResponse>> GetAllAsync()
+    {
+        var clients = await _clientRepo.GetAllAsync();
+        return clients.Select(c => new ClientResponse
+        {
+            Id        = c.Id,
+            Name      = c.Name,
+            Email     = c.Email,
+            Phone     = c.Phone,
+            PhotoUrl  = c.PhotoUrl,
+        });
+    }
 }
