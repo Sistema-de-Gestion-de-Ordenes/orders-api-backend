@@ -24,7 +24,7 @@ public class NotificationsController : ControllerBase
             var result = await _notificationService.GetByClientIdAsync(clientId, read);
             return Ok(result);
         }
-        catch (Exception) { return StatusCode(500, new { error = "Internal server error" }); }
+        catch (Exception) { return StatusCode(500, new { error = "Error interno del servidor" }); }
     }
 
     [HttpPatch("{id:int}/read")]
@@ -33,10 +33,10 @@ public class NotificationsController : ControllerBase
         try
         {
             await _notificationService.MarkAsReadAsync(id);
-            return Ok(new { message = "Notification marked as read" });
+            return Ok(new { message = "Notificación marcada como leída" });
         }
         catch (NotFoundException ex) { return NotFound(new { error = ex.Message }); }
-        catch (Exception)            { return StatusCode(500, new { error = "Internal server error" }); }
+        catch (Exception)            { return StatusCode(500, new { error = "Error interno del servidor" }); }
     }
 
     [HttpPost("fcm-token")]
@@ -52,8 +52,8 @@ public class NotificationsController : ControllerBase
             else
                 await _notificationService.UpdateFcmTokenAsync(id, dto.FcmToken);
 
-            return Ok(new { message = "FCM token updated successfully" });
+            return Ok(new { message = "Token FCM actualizado correctamente" });
         }
-        catch (Exception) { return StatusCode(500, new { error = "Internal server error" }); }
+        catch (Exception) { return StatusCode(500, new { error = "Error interno del servidor" }); }
     }
 }

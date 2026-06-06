@@ -22,7 +22,7 @@ public class DeliveriesController : ControllerBase
             var result = await _deliveryService.GetAllAsync();
             return Ok(result);
         }
-        catch (Exception) { return StatusCode(500, new { error = "Internal server error" }); }
+        catch (Exception) { return StatusCode(500, new { error = "Error interno del servidor" }); }
     }
 
     [HttpGet("{id:int}")]
@@ -34,7 +34,7 @@ public class DeliveriesController : ControllerBase
             return Ok(result);
         }
         catch (NotFoundException ex) { return NotFound(new { error = ex.Message }); }
-        catch (Exception)            { return StatusCode(500, new { error = "Internal server error" }); }
+        catch (Exception)            { return StatusCode(500, new { error = "Error interno del servidor" }); }
     }
 
     [HttpPost]
@@ -47,7 +47,7 @@ public class DeliveriesController : ControllerBase
         }
         catch (NotFoundException ex) { return NotFound(new { error = ex.Message }); }
         catch (DomainException ex)   { return BadRequest(new { error = ex.Message }); }
-        catch (Exception)            { return StatusCode(500, new { error = "Internal server error" }); }
+        catch (Exception)            { return StatusCode(500, new { error = "Error interno del servidor" }); }
     }
 
     [HttpPut("{id:int}")]
@@ -61,7 +61,7 @@ public class DeliveriesController : ControllerBase
         }
         catch (NotFoundException ex) { return NotFound(new { error = ex.Message }); }
         catch (DomainException ex)   { return BadRequest(new { error = ex.Message }); }
-        catch (Exception)            { return StatusCode(500, new { error = "Internal server error" }); }
+        catch (Exception)            { return StatusCode(500, new { error = "Error interno del servidor" }); }
     }
 
     [HttpDelete("{id:int}")]
@@ -74,7 +74,7 @@ public class DeliveriesController : ControllerBase
             return NoContent();
         }
         catch (NotFoundException ex) { return NotFound(new { error = ex.Message }); }
-        catch (Exception)            { return StatusCode(500, new { error = "Internal server error" }); }
+        catch (Exception)            { return StatusCode(500, new { error = "Error interno del servidor" }); }
     }
 
     [HttpPatch("{id:int}/status")]
@@ -95,6 +95,6 @@ public class DeliveriesController : ControllerBase
         }
         catch (NotFoundException ex) { return NotFound(new { error = ex.Message }); }
         catch (DomainException ex)   { return BadRequest(new { error = ex.Message }); }
-        catch (Exception)            { return StatusCode(500, new { error = "Internal server error" }); }
+        catch (Exception)            { return StatusCode(500, new { error = "Error interno del servidor" }); }
     }
 }

@@ -38,13 +38,13 @@ public class DriverService : IDriverService
     public async Task<DriverResponse> CreateAsync(CreateDriverRequest dto)
     {
         if (!AllowedMimeTypes.Contains(dto.Photo.ContentType))
-            throw new DomainException("Only JPG or PNG images are allowed.");
+            throw new DomainException("Solo se permiten imágenes JPG o PNG.");
 
         if (dto.Photo.Length > MaxPhotoSize)
-            throw new DomainException("Photo must not exceed 5 MB.");
+            throw new DomainException("La foto no puede superar los 5 MB.");
 
         if (await _driverRepo.GetByPlatesAsync(dto.Plates) is not null)
-            throw new ConflictException("The license plates are already registered.");
+            throw new ConflictException("Las placas ya están registradas.");
 
         var ext          = Path.GetExtension(dto.Photo.FileName).ToLowerInvariant();
         var fileName     = $"{Guid.NewGuid()}{ext}";
@@ -60,7 +60,7 @@ public class DriverService : IDriverService
         }
         catch
         {
-            throw new DomainException("Failed to save photo. Please try again.");
+            throw new DomainException("No se pudo guardar la foto. Inténtalo de nuevo.");
         }
 
         var driver = new Driver
@@ -99,7 +99,7 @@ public class DriverService : IDriverService
     public async Task<DriverResponse> GetByIdAsync(int id)
     {
         var driver = await _driverRepo.GetByIdAsync(id)
-            ?? throw new NotFoundException($"The driver with id {id} does not exist.");
+            ?? throw new NotFoundException($"No se encontró el conductor con id {id}.");
 
         return new DriverResponse
         {

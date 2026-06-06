@@ -27,7 +27,7 @@ public class ClientsController : ControllerBase
         }
         catch (ConflictException ex)  { return Conflict(new { error = ex.Message }); }
         catch (DomainException ex)    { return BadRequest(new { error = ex.Message }); }
-        catch (Exception)             { return StatusCode(500, new { error = "Internal server error" }); }
+        catch (Exception)             { return StatusCode(500, new { error = "Error interno del servidor" }); }
     }
 
     [HttpGet]
@@ -38,6 +38,6 @@ public class ClientsController : ControllerBase
             var result = await _clientService.GetAllAsync();
             return Ok(result);
         }
-        catch (Exception) { return StatusCode(500, new { error = "Internal server error" }); }
+        catch (Exception) { return StatusCode(500, new { error = "Error interno del servidor" }); }
     }
 }

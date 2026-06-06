@@ -50,7 +50,7 @@ public class AuthServiceTests
                 .LoginAsync(new LoginRequest { Email = "notfound@test.com", Password = "anypassword" }));
 
         Assert.Equal(401, ex.StatusCode);
-        Assert.Equal("Invalid credentials.", ex.Message);
+        Assert.Equal("Credenciales inválidas.", ex.Message);
     }
 
     [Fact]
@@ -67,7 +67,7 @@ public class AuthServiceTests
                 .LoginAsync(new LoginRequest { Email = "bob@test.com", Password = "wrong-password" }));
 
         Assert.Equal(401, ex.StatusCode);
-        Assert.Equal("Invalid credentials.", ex.Message);
+        Assert.Equal("Credenciales inválidas.", ex.Message);
     }
 
     [Fact]
@@ -105,6 +105,6 @@ public class AuthServiceTests
                 .LoginAsync(new LoginRequest { Email = "diana@test.com", Password = "wrong-user-pass" }));
 
         Assert.Equal(401, ex.StatusCode);
-        Assert.Equal("Invalid credentials.", ex.Message);
+        Assert.Equal("Credenciales inválidas.", ex.Message);
     }
 }
