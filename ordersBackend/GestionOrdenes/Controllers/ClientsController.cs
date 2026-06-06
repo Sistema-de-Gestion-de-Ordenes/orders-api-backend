@@ -8,6 +8,9 @@ namespace OrderManagement.Controllers;
 
 [ApiController]
 [Route("clients")]
+[Authorize]// FIX #1 (Critical): Added class-level [Authorize] to protect all routes by default.
+            // GetAll returns PII (name, email, phone, photoUrl) and must require a valid token.
+            // Create keeps [AllowAnonymous] below since registration is intentionally public.
 public class ClientsController : ControllerBase
 {
     private readonly IClientService _clientService;
