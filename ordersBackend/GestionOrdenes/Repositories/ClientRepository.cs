@@ -21,4 +21,9 @@ public class ClientRepository : IClientRepository
         await _db.SaveChangesAsync();
         return client;
     }
+
+    public async Task<IEnumerable<Client>> GetAllAsync()
+    => await _db.Clients
+        .OrderByDescending(c => c.CreatedAt)
+        .ToListAsync();
 }

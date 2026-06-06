@@ -95,4 +95,20 @@ public class DriverService : IDriverService
             PhotoUrl = created.PhotoUrl
         };
     }
+
+    public async Task<DriverResponse> GetByIdAsync(int id)
+    {
+        var driver = await _driverRepo.GetByIdAsync(id)
+            ?? throw new NotFoundException($"The driver with id {id} does not exist.");
+
+        return new DriverResponse
+        {
+            Id       = driver.Id,
+            Name     = driver.Name,
+            Vehicle  = driver.Vehicle,
+            Plates   = driver.Plates,
+            Phone    = driver.Phone,
+            PhotoUrl = driver.PhotoUrl
+        };
+    }
 }

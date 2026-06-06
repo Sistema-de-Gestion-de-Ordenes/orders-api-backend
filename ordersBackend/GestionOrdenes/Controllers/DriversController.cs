@@ -38,4 +38,16 @@ public class DriversController : ControllerBase
         catch (DomainException ex)    { return BadRequest(new { error = ex.Message }); }
         catch (Exception)             { return StatusCode(500, new { error = "Internal server error" }); }
     }
+
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> GetById(int id)
+    {
+        try
+        {
+            var result = await _driverService.GetByIdAsync(id);
+            return Ok(result);
+        }
+        catch (NotFoundException ex) { return NotFound(new { error = ex.Message }); }
+        catch (Exception)            { return StatusCode(500, new { error = "Internal server error" }); }
+    }
 }
