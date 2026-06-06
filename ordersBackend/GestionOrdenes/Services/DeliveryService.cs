@@ -52,7 +52,7 @@ public class DeliveryService : IDeliveryService
     public async Task<DeliveryDetailResponse> GetByIdAsync(int id)
     {
         var d = await _deliveryRepo.GetByIdAsync(id)
-            ?? throw new NotFoundException($"The delivery with id {id} does not exist.");
+            ?? throw new NotFoundException($"No se encontró la entrega con id {id}.");
 
         return new DeliveryDetailResponse
         {
@@ -81,10 +81,10 @@ public class DeliveryService : IDeliveryService
     public async Task<DeliveryResponse> CreateAsync(CreateDeliveryRequest dto)
     {
         _ = await _clientRepo.GetByIdAsync(dto.ClientId)
-            ?? throw new NotFoundException($"The client with id {dto.ClientId} does not exist.");
+            ?? throw new NotFoundException($"No se encontró el cliente con id {dto.ClientId}.");
 
         _ = await _driverRepo.GetByIdAsync(dto.DriverId)
-            ?? throw new NotFoundException($"The driver with id {dto.DriverId} does not exist.");
+            ?? throw new NotFoundException($"No se encontró el conductor con id {dto.DriverId}.");
 
         var delivery = new Delivery
         {
@@ -104,10 +104,10 @@ public class DeliveryService : IDeliveryService
     public async Task<DeliveryResponse> UpdateAsync(int id, UpdateDeliveryRequest dto)
     {
         var delivery = await _deliveryRepo.GetByIdAsync(id)
-            ?? throw new NotFoundException($"The delivery with id {id} does not exist.");
+            ?? throw new NotFoundException($"No se encontró la entrega con id {id}.");
 
         _ = await _driverRepo.GetByIdAsync(dto.DriverId)
-            ?? throw new NotFoundException($"The driver with id {dto.DriverId} does not exist.");
+            ?? throw new NotFoundException($"No se encontró el conductor con id {dto.DriverId}.");
 
         delivery.Origin      = dto.Origin;
         delivery.Destination = dto.Destination;
@@ -120,7 +120,7 @@ public class DeliveryService : IDeliveryService
     public async Task DeleteAsync(int id)
     {
         var delivery = await _deliveryRepo.GetByIdAsync(id)
-            ?? throw new NotFoundException($"The delivery with id {id} does not exist.");
+            ?? throw new NotFoundException($"No se encontró la entrega con id {id}.");
 
         await _deliveryRepo.DeleteAsync(delivery);
     }
@@ -130,10 +130,10 @@ public class DeliveryService : IDeliveryService
         var normalizedStatus = dto.Status.ToLowerInvariant();
 
         var delivery = await _deliveryRepo.GetByIdAsync(id)
-            ?? throw new NotFoundException($"The delivery with id {id} does not exist.");
+            ?? throw new NotFoundException($"No se encontró la entrega con id {id}.");
 
         if (!ValidTransitions.TryGetValue(delivery.Status, out var allowed) || !allowed.Contains(normalizedStatus))
-            throw new DomainException($"Cannot transition from {delivery.Status} to {normalizedStatus}.");
+            throw new DomainException($"No se puede cambiar el estado de '{delivery.Status}' a '{normalizedStatus}'.");
 
         var previousStatus = delivery.Status;
         delivery.Status = normalizedStatus;
@@ -148,8 +148,8 @@ public class DeliveryService : IDeliveryService
             await _notificationService.SendAsync(
                 delivery.ClientId,
                 id,
-                "Delivery status updated",
-                $"Delivery #{id} status has changed to: {normalizedStatus}.");
+                "Estado de entrega actualizado",
+                $"El estado de tu entrega #{id} cambió a: {normalizedStatus}.");
 
             _logger.LogInformation(
                 "Notification sent for delivery {DeliveryId} to client {ClientId}",

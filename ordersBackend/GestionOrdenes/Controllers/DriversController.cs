@@ -22,7 +22,7 @@ public class DriversController : ControllerBase
             var result = await _driverService.GetAllAsync();
             return Ok(result);
         }
-        catch (Exception) { return StatusCode(500, new { error = "Internal server error" }); }
+        catch (Exception) { return StatusCode(500, new { error = "Error interno del servidor" }); }
     }
 
     [HttpPost]
@@ -36,7 +36,7 @@ public class DriversController : ControllerBase
         }
         catch (ConflictException ex)  { return Conflict(new { error = ex.Message }); }
         catch (DomainException ex)    { return BadRequest(new { error = ex.Message }); }
-        catch (Exception)             { return StatusCode(500, new { error = "Internal server error" }); }
+        catch (Exception)             { return StatusCode(500, new { error = "Error interno del servidor" }); }
     }
 
     [HttpGet("{id:int}")]
@@ -48,6 +48,6 @@ public class DriversController : ControllerBase
             return Ok(result);
         }
         catch (NotFoundException ex) { return NotFound(new { error = ex.Message }); }
-        catch (Exception)            { return StatusCode(500, new { error = "Internal server error" }); }
+        catch (Exception)            { return StatusCode(500, new { error = "Error interno del servidor" }); }
     }
 }

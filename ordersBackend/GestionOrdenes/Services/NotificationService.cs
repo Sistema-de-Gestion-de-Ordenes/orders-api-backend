@@ -34,7 +34,7 @@ public class NotificationService : INotificationService
     public async Task MarkAsReadAsync(int id)
     {
         var notification = await _notificationRepo.GetByIdAsync(id)
-            ?? throw new NotFoundException($"Notification with id {id} not found.");
+            ?? throw new NotFoundException($"No se encontró la notificación con id {id}.");
 
         notification.IsRead = true;
         await _notificationRepo.SaveAsync();

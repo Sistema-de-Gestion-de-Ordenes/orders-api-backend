@@ -24,13 +24,13 @@ public class ClientService : IClientService
     public async Task<ClientResponse> CreateAsync(CreateClientRequest dto)
     {
         if (!AllowedMimeTypes.Contains(dto.Photo.ContentType))
-            throw new DomainException("Only JPG or PNG images are allowed.");
+            throw new DomainException("Solo se permiten imágenes JPG o PNG.");
 
         if (dto.Photo.Length > MaxPhotoSize)
-            throw new DomainException("Photo must not exceed 5 MB.");
+            throw new DomainException("La foto no puede superar los 5 MB.");
 
         if (await _clientRepo.GetByEmailAsync(dto.Email) is not null)
-            throw new ConflictException("The email is already in use.");
+            throw new ConflictException("El correo electrónico ya está en uso.");
 
         var ext          = Path.GetExtension(dto.Photo.FileName).ToLowerInvariant();
         var fileName     = $"{Guid.NewGuid()}{ext}";
@@ -46,7 +46,7 @@ public class ClientService : IClientService
         }
         catch
         {
-            throw new DomainException("Failed to save photo. Please try again.");
+            throw new DomainException("No se pudo guardar la foto. Inténtalo de nuevo.");
         }
 
         var client = new Client

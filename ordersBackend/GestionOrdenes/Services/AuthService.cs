@@ -22,13 +22,13 @@ public class AuthService : IAuthService
     public async Task<LoginResponse> LoginAsync(LoginRequest dto)
     {
         if (string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Password))
-            throw new DomainException("Email and password are required.");
+            throw new DomainException("El correo y la contraseña son obligatorios.");
 
         var client = await _authRepo.GetByEmailAsync(dto.Email);
         if (client is not null)
         {
             if (!BCrypt.Net.BCrypt.Verify(dto.Password, client.PasswordHash))
-                throw new DomainException("Invalid credentials.", 401);
+                throw new DomainException("Credenciales inválidas.", 401);
 
             return new LoginResponse { Token = GenerateToken(client.Id, client.Email, client.Name, "client") };
         }
@@ -37,7 +37,7 @@ public class AuthService : IAuthService
         if (user is not null)
         {
             if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
-                throw new DomainException("Invalid credentials.", 401);
+                throw new DomainException("Credenciales inválidas.", 401);
 
             return new LoginResponse { Token = GenerateToken(user.Id, user.Email, user.Name, user.Role) };
         }
