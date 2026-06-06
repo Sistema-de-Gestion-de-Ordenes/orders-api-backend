@@ -15,6 +15,7 @@ public class ClientDetailDto
     public string Name { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string RegisteredSince { get; set; } = string.Empty;
+    public string? PhotoUrl { get; set; }
 }
 
 public class DriverDetailDto

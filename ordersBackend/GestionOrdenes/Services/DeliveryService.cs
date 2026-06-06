@@ -38,12 +38,14 @@ public class DeliveryService : IDeliveryService
         var deliveries = await _deliveryRepo.GetAllAsync();
         return deliveries.Select(d => new DeliverySummaryResponse
         {
-            Id          = d.Id,
-            Client      = d.Client?.Name ?? string.Empty,
-            Driver      = d.Driver?.Name ?? string.Empty,
-            Origin      = d.Origin,
-            Destination = d.Destination,
-            Status      = d.Status
+            Id             = d.Id,
+            Client         = d.Client?.Name ?? string.Empty,
+            ClientPhotoUrl = d.Client?.PhotoUrl,
+            Driver         = d.Driver?.Name ?? string.Empty,
+            DriverPhotoUrl = d.Driver?.PhotoUrl,
+            Origin         = d.Origin,
+            Destination    = d.Destination,
+            Status         = d.Status
         });
     }
 
@@ -62,7 +64,8 @@ public class DeliveryService : IDeliveryService
             {
                 Name            = d.Client?.Name ?? string.Empty,
                 Email           = d.Client?.Email ?? string.Empty,
-                RegisteredSince = d.Client?.CreatedAt.ToString("dd/MM/yyyy") ?? string.Empty
+                RegisteredSince = d.Client?.CreatedAt.ToString("dd/MM/yyyy") ?? string.Empty,
+                PhotoUrl        = d.Client?.PhotoUrl
             },
             Driver = new DriverDetailDto
             {
