@@ -49,6 +49,24 @@ public class DeliveryService : IDeliveryService
         });
     }
 
+    public async Task<IEnumerable<DeliveryHistoryResponse>> GetHistoryAsync()
+    {
+        var deliveries = await _deliveryRepo.GetHistoryAsync();
+        return deliveries.Select(d => new DeliveryHistoryResponse
+        {
+            Id             = d.Id,
+            Client         = d.Client?.Name ?? string.Empty,
+            ClientPhotoUrl = d.Client?.PhotoUrl,
+            Driver         = d.Driver?.Name ?? string.Empty,
+            DriverPhotoUrl = d.Driver?.PhotoUrl,
+            Origin         = d.Origin,
+            Destination    = d.Destination,
+            Status         = d.Status,
+            CreatedAt      = d.CreatedAt,
+            UpdatedAt      = d.UpdatedAt
+        });
+    }
+
     public async Task<DeliveryDetailResponse> GetByIdAsync(int id)
     {
         var d = await _deliveryRepo.GetByIdAsync(id)
