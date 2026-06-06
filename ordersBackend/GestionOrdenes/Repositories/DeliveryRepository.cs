@@ -16,6 +16,14 @@ public class DeliveryRepository : IDeliveryRepository
             .OrderByDescending(d => d.CreatedAt)
             .ToListAsync();
 
+    public async Task<IEnumerable<Delivery>> GetHistoryAsync()
+        => await _db.Deliveries
+            .Include(d => d.Client)
+            .Include(d => d.Driver)
+            .Where(d => d.Status == "delivered")
+            .OrderByDescending(d => d.UpdatedAt)
+            .ToListAsync();
+
     public async Task<Delivery?> GetByIdAsync(int id)
         => await _db.Deliveries
             .Include(d => d.Client)

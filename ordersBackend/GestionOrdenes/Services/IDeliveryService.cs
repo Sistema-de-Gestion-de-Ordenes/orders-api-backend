@@ -5,6 +5,7 @@ namespace OrderManagement.Services;
 public interface IDeliveryService
 {
     Task<IEnumerable<DeliverySummaryResponse>> GetAllAsync();
+    Task<IEnumerable<DeliveryHistoryResponse>> GetHistoryAsync();
     Task<DeliveryDetailResponse> GetByIdAsync(int id);
     Task<DeliveryResponse> CreateAsync(CreateDeliveryRequest dto);
     Task<DeliveryResponse> UpdateAsync(int id, UpdateDeliveryRequest dto);

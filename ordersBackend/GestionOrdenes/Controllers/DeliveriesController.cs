@@ -25,6 +25,18 @@ public class DeliveriesController : ControllerBase
         catch (Exception) { return StatusCode(500, new { error = "Error interno del servidor" }); }
     }
 
+    [HttpGet("history")]
+    [Authorize(Roles = "admin")]
+    public async Task<IActionResult> GetHistory()
+    {
+        try
+        {
+            var result = await _deliveryService.GetHistoryAsync();
+            return Ok(result);
+        }
+        catch (Exception) { return StatusCode(500, new { error = "Error interno del servidor" }); }
+    }
+
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
