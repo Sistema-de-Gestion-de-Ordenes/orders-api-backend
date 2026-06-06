@@ -4,7 +4,8 @@ using Microsoft.AspNetCore.Mvc.Testing;
 namespace GestionOrdenes.Tests.Integration;
 
 [Trait("Category", "Integration")]
-public class DeliveryEndpointAuthTests : IClassFixture<WebApplicationFactory<Program>>
+[Collection("Integration")]
+public class DeliveryEndpointAuthTests
 {
     private readonly HttpClient _client;
 
@@ -14,20 +15,19 @@ public class DeliveryEndpointAuthTests : IClassFixture<WebApplicationFactory<Pro
     }
 
     [Fact]
-    public async Task GetDeliveries_ReturnsOk_WithoutAuthentication()
+    public async Task GetDeliveries_ReturnsUnauthorized_WithoutToken()
     {
         var response = await _client.GetAsync("/deliveries");
 
-        // Deliveries endpoints are public; no auth required
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     [Fact]
-    public async Task GetDeliveryById_ReturnsNotFound_ForNonExistentId()
+    public async Task GetDeliveryById_ReturnsUnauthorized_WithoutToken()
     {
         var response = await _client.GetAsync("/deliveries/99999");
 
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     [Fact]

@@ -4,7 +4,8 @@ using Microsoft.AspNetCore.Mvc.Testing;
 namespace GestionOrdenes.Tests.Integration;
 
 [Trait("Category", "Integration")]
-public class DriverEndpointAuthTests : IClassFixture<WebApplicationFactory<Program>>
+[Collection("Integration")]
+public class DriverEndpointAuthTests
 {
     private readonly HttpClient _client;
 

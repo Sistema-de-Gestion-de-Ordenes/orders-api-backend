@@ -42,7 +42,7 @@ public class AuthService : IAuthService
             return new LoginResponse { Token = GenerateToken(user.Id, user.Email, user.Name, user.Role) };
         }
 
-        throw new DomainException("Invalid credentials.", 401);
+        throw new DomainException("Credenciales inválidas.", 401);
     }
 
     private string GenerateToken(int id, string email, string name, string role)
