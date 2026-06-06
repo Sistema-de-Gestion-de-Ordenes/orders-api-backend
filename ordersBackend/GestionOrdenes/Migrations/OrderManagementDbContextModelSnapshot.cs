@@ -277,6 +277,11 @@ namespace OrderManagement.Migrations
                         .HasColumnType("nvarchar(200)")
                         .HasColumnName("email");
 
+                    b.Property<string>("FcmToken")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("fcm_token");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
